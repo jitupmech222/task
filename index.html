@@ -1,73 +1,88 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NSE Trading Task</title>
-  <link rel="stylesheet" href="style.css">
-  <!-- Supabase JS Library -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-</head>
-<body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Task Dashboard</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="container">
+      <header class="topbar">
+        <h1>Dashboard</h1>
+      </header>
 
-  <div class="container">
-    <!-- મુખ્ય Trading બટન -->
-    <button id="tradingBtn" class="main-btn">Trading</button>
+      <div class="button-grid">
+        <button class="nav-btn active">Treading</button>
+        <button class="nav-btn">Generate task</button>
+        <button class="nav-btn">Sattelment</button>
+        <button class="nav-btn">Report</button>
+        <button class="nav-btn">Data</button>
+      </div>
 
-    <!-- વિકલ્પ પસંદ કરવા માટે (1. New / 2. In Progress) -->
-    <div id="optionSection" style="display: none; margin-top: 20px;">
-      <h3>Select Option:</h3>
-      <button id="newBtn" class="sub-btn">1) New</button>
-      <button id="inProgressBtn" class="sub-btn">2) In Progress</button>
-    </div>
+      <!-- અન્ય બટનો માટેનો મેસેજ કાર્ડ -->
+      <div class="card" id="default-card" style="display: none;">
+        <h2>Overview</h2>
+        <p id="status-text">Treading button selected. Functionality will be added later.</p>
+      </div>
 
-    <!-- 1) NEW TRADE FORM -->
-    <div id="newFormSection" class="card" style="display: none;">
-      <h3>New Trade Entry</h3>
-      <label>Date:</label>
-      <input type="date" id="buyDate" required>
+      <!-- TREADING પ્રોગ્રામ માટેનો મુખ્ય કાર્ડ -->
+      <div class="card" id="treading-section">
+        <h2>NSE Trading</h2>
+        <div class="sub-btn-group">
+          <button type="button" id="btn-new" class="action-btn">1) New</button>
+          <button type="button" id="btn-in-progress" class="action-btn">2) In Progress</button>
+        </div>
 
-      <label>Stock Name:</label>
-      <input type="text" id="stockName" placeholder="દા.ત. RELIANCE, TCS" required>
+        <!-- 1) NEW TRADE FORM -->
+        <div id="new-trade-form" class="form-box" style="display: none;">
+          <h3>1) New Trade Entry</h3>
+          <label>Date:</label>
+          <input type="date" id="buy_date" required />
 
-      <label>Buy Price:</label>
-      <input type="number" step="0.01" id="buyPrice" placeholder="0.00" required>
+          <label>Stock Name:</label>
+          <input type="text" id="stock_name" placeholder="દા.ત. RELIANCE, TCS" required />
 
-      <label>Buy Qty:</label>
-      <input type="number" step="1" id="buyQty" placeholder="0" required>
+          <label>Buy Price:</label>
+          <input type="number" step="0.01" id="buy_price" placeholder="0.00" required />
 
-      <label>Buy Charges:</label>
-      <input type="number" step="0.01" id="buyCharges" placeholder="0.00" required>
+          <label>Buy Qty:</label>
+          <input type="number" step="1" id="buy_qty" placeholder="0" required />
 
-      <button id="saveNewBtn" class="save-btn">Save New Trade</button>
-    </div>
+          <label>Buy Charges:</label>
+          <input type="number" step="0.01" id="buy_charges" placeholder="0.00" required />
 
-    <!-- 2) IN PROGRESS SECTION -->
-    <div id="inProgressSection" class="card" style="display: none;">
-      <h3>In Progress Trades (Pending Sell)</h3>
-      <div id="pendingList">લોડ થઈ રહ્યું છે...</div>
+          <button type="button" id="save-new-btn" class="submit-btn">Save Trade</button>
+        </div>
 
-      <!-- પસંદ કરેલા સ્ટોકની Sell વિગતો ભરવા માટેનું ફોર્મ -->
-      <div id="sellFormSection" style="display: none; margin-top: 20px; border-top: 1px solid #ccc; padding-top: 15px;">
-        <h4 id="selectedStockTitle">Selected Stock</h4>
-        <input type="hidden" id="selectedSrNo">
-        <input type="hidden" id="hiddenBuyAmount">
-        <input type="hidden" id="hiddenBuyCharges">
+        <!-- 2) IN PROGRESS SECTION -->
+        <div id="in-progress-section" class="form-box" style="display: none;">
+          <h3>2) In Progress Trades</h3>
+          <div id="pending-list">ડેટા લોડ થઈ રહ્યો છે...</div>
 
-        <label>Sell Price:</label>
-        <input type="number" step="0.01" id="sellPrice" placeholder="0.00" required>
+          <!-- પસંદ કરેલા સ્ટોકની Sell વિગતો ભરવાનું ફોર્મ -->
+          <div id="sell-trade-form" style="display: none; margin-top: 20px; border-top: 1px solid #ddd; padding-top: 15px;">
+            <h4 id="selected-stock-title">Sell Entry</h4>
+            <input type="hidden" id="selected_sr_no" />
+            <input type="hidden" id="hidden_buy_amount" />
+            <input type="hidden" id="hidden_buy_charges" />
 
-        <label>Sell Qty:</label>
-        <input type="number" step="1" id="sellQty" placeholder="0" required>
+            <label>Sell Price:</label>
+            <input type="number" step="0.01" id="sell_price" placeholder="0.00" required />
 
-        <label>Sell Charges:</label>
-        <input type="number" step="0.01" id="sellCharges" placeholder="0.00" required>
+            <label>Sell Qty:</label>
+            <input type="number" step="1" id="sell_qty" placeholder="0" required />
 
-        <button id="updateSellBtn" class="save-btn">Update & Complete Trade</button>
+            <label>Sell Charges:</label>
+            <input type="number" step="0.01" id="sell_charges" placeholder="0.00" required />
+
+            <button type="button" id="update-sell-btn" class="submit-btn">Update & Complete Trade</button>
+          </div>
+        </div>
       </div>
     </div>
-  </div>
 
-  <script src="script.js"></script>
-</body>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="script.js"></script>
+  </body>
 </html>
