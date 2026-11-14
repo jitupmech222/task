@@ -1,49 +1,61 @@
-// 1. અહીં તમારી Supabase URL અને ANON KEY નાખો
-const SUPABASE_URL = 'તમારી_SUPABASE_URL_અહીં_પેસ્ટ_કરો';
-const SUPABASE_KEY = 'તમારી_SUPABASE_ANON_KEY_અહીં_પેસ્ટ_કરો';
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const buttons = document.querySelectorAll(".nav-btn");
+const statusText = document.getElementById("status-text");
+const defaultCard = document.getElementById("default-card");
+const treadingSection = document.getElementById("treading-section");
 
-// બટનો અને સેક્શનના રેફરન્સ
-const tradingBtn = document.getElementById('tradingBtn');
-const optionSection = document.getElementById('optionSection');
-const newBtn = document.getElementById('newBtn');
-const inProgressBtn = document.getElementById('inProgressBtn');
+// Supabase setup (અહીં તમારી સાચી URL અને Key મૂકવી)
+const supabaseUrl = "YOUR_SUPABASE_URL";
+const supabaseKey = "YOUR_SUPABASE_ANON_KEY";
+const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-const newFormSection = document.getElementById('newFormSection');
-const inProgressSection = document.getElementById('inProgressSection');
-const sellFormSection = document.getElementById('sellFormSection');
+// મુખ્ય ડેશબોર્ડ બટનોનું નેવિગેશન
+buttons.forEach((button) => {
+  button.addEventListener("click", () => {
+    buttons.forEach((btn) => btn.classList.remove("active"));
+    button.classList.add("active");
 
-// Trading બટન દબાવતા વિકલ્પો બતાવો
-tradingBtn.addEventListener('click', () => {
-  optionSection.style.display = 'block';
-  newFormSection.style.display = 'none';
-  inProgressSection.style.display = 'none';
+    const name = button.textContent.trim();
+    if (name === "Treading") {
+      treadingSection.style.display = "block";
+      defaultCard.style.display = "none";
+    } else {
+      treadingSection.style.display = "none";
+      defaultCard.style.display = "block";
+      statusText.textContent = `${name} button selected. Functionality will be added later.`;
+    }
+  });
 });
 
-// 1) New વિકલ્પ પસંદ કરતા
-newBtn.addEventListener('click', () => {
-  newFormSection.style.display = 'block';
-  inProgressSection.style.display = 'none';
+// Treading વિભાગના બટનો અને ફોર્મ
+const btnNew = document.getElementById("btn-new");
+const btnInProgress = document.getElementById("btn-in-progress");
+const newTradeForm = document.getElementById("new-trade-form");
+const inProgressSection = document.getElementById("in-progress-section");
+const sellTradeForm = document.getElementById("sell-trade-form");
+
+// 1) New બટન પર ક્લિક કરતા
+btnNew.addEventListener("click", () => {
+  newTradeForm.style.display = "block";
+  inProgressSection.style.display = "none";
 });
 
-// New Trade ડેટાબેઝમાં સેવ કરવા માટે
-document.getElementById('saveNewBtn').addEventListener('click', async () => {
-  const date = document.getElementById('buyDate').value;
-  const stock_name = document.getElementById('stockName').value.trim().toUpperCase();
-  const buy_price = parseFloat(document.getElementById('buyPrice').value);
-  const buy_qty = parseFloat(document.getElementById('buyQty').value);
-  const buy_charges = parseFloat(document.getElementById('buyCharges').value) || 0;
+// New Trade ડેટાબેઝ (task_nse) માં સેવ કરવા માટે
+document.getElementById("save-new-btn").addEventListener("click", async () => {
+  const date = document.getElementById("buy_date").value;
+  const stock_name = document.getElementById("stock_name").value.trim().toUpperCase();
+  const buy_price = parseFloat(document.getElementById("buy_price").value);
+  const buy_qty = parseFloat(document.getElementById("buy_qty").value);
+  const buy_charges = parseFloat(document.getElementById("buy_charges").value) || 0;
 
   if (!date || !stock_name || isNaN(buy_price) || isNaN(buy_qty)) {
-    alert('કૃપા કરીને બધી જરૂરી વિગતો ભરો!');
+    alert("કૃપા કરીને બધી જરૂરી વિગતો ભરો!");
     return;
   }
 
-  // ગણતરી: buy_amount = buy_price * buy_qty
   const buy_amount = buy_price * buy_qty;
 
-  const { data, error } = await supabase
-    .from('task_nse')
+  const { data, error } = await supabaseClient
+    .from("task_nse")
     .insert([
       {
         date: date,
@@ -52,94 +64,91 @@ document.getElementById('saveNewBtn').addEventListener('click', async () => {
         buy_qty: buy_qty,
         buy_charges: buy_charges,
         buy_amount: buy_amount
-        // sell_price, sell_qty, sell_charges આપમેળે NULL (ખાલી) રહેશે
       }
     ]);
 
   if (error) {
-    alert('એરર આવી: ' + error.message);
+    alert("ડેટા સેવ કરવામાં એરર આવી: " + error.message);
   } else {
-    alert('નવો ટ્રેડ સફળતાપૂર્વક સેવ થઈ ગયો!');
-    // ફોર્મ ખાલી કરો
-    document.getElementById('stockName').value = '';
-    document.getElementById('buyPrice').value = '';
-    document.getElementById('buyQty').value = '';
-    document.getElementById('buyCharges').value = '';
+    alert("નવો ટ્રેડ સફળતાપૂર્વક સેવ થઈ ગયો!");
+    document.getElementById("stock_name").value = "";
+    document.getElementById("buy_price").value = "";
+    document.getElementById("buy_qty").value = "";
+    document.getElementById("buy_charges").value = "";
   }
 });
 
-// 2) In Progress વિકલ્પ પસંદ કરતા (જ્યાં sell_price ખાલી હોય તેવા સ્ટોક બતાવો)
-inProgressBtn.addEventListener('click', async () => {
-  newFormSection.style.display = 'none';
-  inProgressSection.style.display = 'block';
-  sellFormSection.style.display = 'none';
-  
-  const pendingList = document.getElementById('pendingList');
-  pendingList.innerHTML = 'ડેટા લોડ થઈ રહ્યો છે...';
+// 2) In Progress બટન પર ક્લિક કરતા
+btnInProgress.addEventListener("click", async () => {
+  newTradeForm.style.display = "none";
+  inProgressSection.style.display = "block";
+  sellTradeForm.style.display = "none";
 
-  // ડેટાબેઝમાંથી એવા રેકોર્ડ લાવો જ્યાં sell_price, sell_qty અને sell_charges ખાલી (null) હોય
-  const { data, error } = await supabase
-    .from('task_nse')
-    .select('*')
-    .is('sell_price', null)
-    .is('sell_qty', null)
-    .is('sell_charges', null)
-    .order('sr_no', { ascending: false });
+  const pendingList = document.getElementById("pending-list");
+  pendingList.innerHTML = "ડેટા લોડ થઈ રહ્યો છે...";
+
+  // જ્યાં sell_price, sell_qty અને sell_charges ખાલી (null) હોય તેવા રેકોર્ડ લાવો
+  const { data, error } = await supabaseClient
+    .from("task_nse")
+    .select("*")
+    .is("sell_price", null)
+    .is("sell_qty", null)
+    .is("sell_charges", null)
+    .order("sr_no", { ascending: false });
 
   if (error) {
-    pendingList.innerHTML = 'એરર: ' + error.message;
+    pendingList.innerHTML = "એરર: " + error.message;
     return;
   }
 
   if (data.length === 0) {
-    pendingList.innerHTML = '<p>કોઈ In Progress ટ્રેડ બાકી નથી.</p>';
+    pendingList.innerHTML = "<p>કોઈ In Progress ટ્રેડ બાકી નથી.</p>";
     return;
   }
 
-  pendingList.innerHTML = '';
-  data.forEach(item => {
-    const div = document.createElement('div');
-    div.className = 'pending-item';
-    div.innerHTML = `<strong>${item.stock_name}</strong> — Buy Qty: ${item.buy_qty} (Buy Price: ₹${item.buy_price})`;
-    
+  pendingList.innerHTML = "";
+  data.forEach((item) => {
+    const div = document.createElement("div");
+    div.className = "pending-item";
+    div.innerHTML = `<strong>${item.stock_name}</strong> — Buy Qty: ${item.buy_qty}`;
+
     // કોઈપણ એક સ્ટોક પર ક્લિક કરતા Sell ફોર્મ ખોલો
-    div.addEventListener('click', () => {
-      sellFormSection.style.display = 'block';
-      document.getElementById('selectedStockTitle').innerText = `Sell Entry: ${item.stock_name} (Buy Qty: ${item.buy_qty})`;
-      document.getElementById('selectedSrNo').value = item.sr_no;
-      document.getElementById('hiddenBuyAmount').value = item.buy_amount;
-      document.getElementById('hiddenBuyCharges').value = item.buy_charges || 0;
-      document.getElementById('sellQty').value = item.buy_qty; // સરળતા માટે default buy_qty મૂકી છે
+    div.addEventListener("click", () => {
+      sellTradeForm.style.display = "block";
+      document.getElementById("selected-stock-title").innerText = `Sell Entry: ${item.stock_name} (Buy Qty: ${item.buy_qty})`;
+      document.getElementById("selected_sr_no").value = item.sr_no;
+      document.getElementById("hidden_buy_amount").value = item.buy_amount;
+      document.getElementById("hidden_buy_charges").value = item.buy_charges || 0;
+      document.getElementById("sell_qty").value = item.buy_qty;
     });
 
     pendingList.appendChild(div);
   });
 });
 
-// Sell વિગતો અપડેટ અને ગણતરી કરવા માટે
-document.getElementById('updateSellBtn').addEventListener('click', async () => {
-  const sr_no = document.getElementById('selectedSrNo').value;
-  const buy_amount = parseFloat(document.getElementById('hiddenBuyAmount').value);
-  const buy_charges = parseFloat(document.getElementById('hiddenBuyCharges').value);
+// Sell વિગતો અપડેટ કરવા માટે
+document.getElementById("update-sell-btn").addEventListener("click", async () => {
+  const sr_no = document.getElementById("selected_sr_no").value;
+  const buy_amount = parseFloat(document.getElementById("hidden_buy_amount").value);
+  const buy_charges = parseFloat(document.getElementById("hidden_buy_charges").value);
 
-  const sell_price = parseFloat(document.getElementById('sellPrice').value);
-  const sell_qty = parseFloat(document.getElementById('sellQty').value);
-  const sell_charges = parseFloat(document.getElementById('sellCharges').value) || 0;
+  const sell_price = parseFloat(document.getElementById("sell_price").value);
+  const sell_qty = parseFloat(document.getElementById("sell_qty").value);
+  const sell_charges = parseFloat(document.getElementById("sell_charges").value) || 0;
 
   if (isNaN(sell_price) || isNaN(sell_qty)) {
-    alert('કૃપા કરીને Sell Price અને Sell Qty દાખલ કરો!');
+    alert("કૃપા કરીને Sell Price અને Sell Qty દાખલ કરો!");
     return;
   }
 
-  // તમારી આપેલી ફોર્મ્યુલા મુજબ ગણતરીઓ:
   const sell_amount = sell_price * sell_qty;
   const total_trn_amount = buy_amount + sell_amount;
   const total_charges = buy_charges + sell_charges;
   const gross_profit_loss = sell_amount - buy_amount;
   const net_profit_loss = gross_profit_loss - total_charges;
 
-  const { data, error } = await supabase
-    .from('task_nse')
+  const { data, error } = await supabaseClient
+    .from("task_nse")
     .update({
       sell_price: sell_price,
       sell_qty: sell_qty,
@@ -150,13 +159,14 @@ document.getElementById('updateSellBtn').addEventListener('click', async () => {
       gross_profit_loss: gross_profit_loss,
       net_profit_loss: net_profit_loss
     })
-    .eq('sr_no', sr_no);
+    .eq("sr_no", sr_no);
 
   if (error) {
-    alert('અપડેટ કરવામાં એરર આવી: ' + error.message);
+    alert("અપડેટ કરવામાં એરર આવી: " + error.message);
   } else {
     alert(`ટ્રેડ પૂર્ણ થયો!\nNet Profit/Loss: ₹${net_profit_loss.toFixed(2)}`);
-    // લિસ્ટ ફરીથી રિફ્રેશ કરો
-    inProgressBtn.click();
+    document.getElementById("sell_price").value = "";
+    document.getElementById("sell_charges").value = "";
+    btnInProgress.click(); // લિસ્ટ રિફ્રેશ કરો
   }
 });
