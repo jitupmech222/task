@@ -1,76 +1,60 @@
-* {
-  box-sizing: border-box;
-}
-
 body {
-  margin: 0;
   font-family: Arial, sans-serif;
-  background: linear-gradient(135deg, #eef4ff, #f7f9fc);
-  color: #1f2937;
-}
-
-.container {
-  max-width: 1000px;
-  margin: 60px auto;
+  background-color: #f4f6f9;
   padding: 20px;
 }
 
-.topbar {
-  text-align: center;
-  margin-bottom: 30px;
+.container {
+  max-width: 500px;
+  margin: auto;
 }
 
-h1 {
-  font-size: 36px;
-  margin: 0;
-  color: #111827;
-}
-
-.button-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 18px;
-  margin-bottom: 25px;
-}
-
-.nav-btn {
-  padding: 22px 18px;
+.main-btn, .sub-btn, .save-btn {
+  padding: 12px 20px;
+  font-size: 16px;
   border: none;
-  border-radius: 16px;
-  background: #ffffff;
-  color: #111827;
-  font-size: 17px;
-  font-weight: 700;
+  border-radius: 6px;
   cursor: pointer;
-  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
-  transition: all 0.2s ease;
+  margin-right: 10px;
+  margin-top: 10px;
 }
 
-.nav-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 22px rgba(15, 23, 42, 0.12);
-}
-
-.nav-btn.active {
-  background: #2563eb;
-  color: white;
-}
+.main-btn { background-color: #007bff; color: white; width: 100%; }
+.sub-btn { background-color: #17a2b8; color: white; }
+.save-btn { background-color: #28a745; color: white; width: 100%; }
 
 .card {
   background: white;
-  border-radius: 18px;
-  padding: 26px 24px;
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  margin-top: 20px;
 }
 
-.card h2 {
-  margin-top: 0;
-  margin-bottom: 12px;
-  color: #111827;
+label {
+  display: block;
+  margin-top: 12px;
+  font-weight: bold;
 }
 
-#status-text {
-  margin: 0;
-  font-size: 16px;
-  color: #374151;
+input {
+  width: 100%;
+  padding: 10px;
+  margin-top: 5px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  box-sizing: border-box;
+}
+
+.pending-item {
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  margin-top: 8px;
+  cursor: pointer;
+  background-color: #fff9e6;
+}
+
+.pending-item:hover {
+  background-color: #ffeeba;
 }
