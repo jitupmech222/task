@@ -1,60 +1,73 @@
-body {
-  font-family: Arial, sans-serif;
-  background-color: #f4f6f9;
-  padding: 20px;
+/* Treading Form & Buttons Styles */
+.sub-btn-group {
+  display: flex;
+  gap: 10px;
+  margin: 15px 0;
 }
 
-.container {
-  max-width: 500px;
-  margin: auto;
-}
-
-.main-btn, .sub-btn, .save-btn {
-  padding: 12px 20px;
-  font-size: 16px;
+.action-btn {
+  padding: 10px 16px;
+  background-color: #2563eb;
+  color: white;
   border: none;
   border-radius: 6px;
   cursor: pointer;
-  margin-right: 10px;
-  margin-top: 10px;
-}
-
-.main-btn { background-color: #007bff; color: white; width: 100%; }
-.sub-btn { background-color: #17a2b8; color: white; }
-.save-btn { background-color: #28a745; color: white; width: 100%; }
-
-.card {
-  background: white;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-  margin-top: 20px;
-}
-
-label {
-  display: block;
-  margin-top: 12px;
   font-weight: bold;
 }
 
-input {
+.action-btn:hover {
+  background-color: #1d4ed8;
+}
+
+.form-box {
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.form-box label {
+  display: block;
+  margin-top: 12px;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.form-box input {
   width: 100%;
   padding: 10px;
   margin-top: 5px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
   box-sizing: border-box;
+  font-size: 15px;
+}
+
+.submit-btn {
+  width: 100%;
+  padding: 12px;
+  margin-top: 18px;
+  background-color: #16a34a;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.submit-btn:hover {
+  background-color: #15803d;
 }
 
 .pending-item {
   padding: 12px;
-  border: 1px solid #ddd;
-  border-radius: 5px;
-  margin-top: 8px;
+  margin-top: 10px;
+  border: 1px solid #fcd34d;
+  background-color: #fef3c7;
+  border-radius: 6px;
   cursor: pointer;
-  background-color: #fff9e6;
 }
 
 .pending-item:hover {
-  background-color: #ffeeba;
+  background-color: #fde68a;
 }
