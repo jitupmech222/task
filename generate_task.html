@@ -48,66 +48,73 @@
         </div>
       </div>
 
-      <!-- 2. ટાસ્ક રમવાનો વિભાગ (PLAY ACTIVE TASK: BUY / SELL) -->
+      <!-- 2. ટાસ્ક રમવાનો વિભાગ (BUY OR SELL FIRST) -->
       <div class="card" id="play-task-card" style="margin-top: 20px; display: none;">
         <h2 style="margin-top: 0;">Play Active Task</h2>
         <div class="sub-btn-group">
-          <button type="button" id="btn-task-new" class="action-btn">1) New Buy Entry</button>
-          <button type="button" id="btn-task-progress" class="action-btn" style="background-color: #d97706;">2) In Progress (Sell)</button>
+          <button type="button" id="btn-task-new" class="action-btn">1) New Entry (Buy / Sell)</button>
+          <button type="button" id="btn-task-progress" class="action-btn" style="background-color: #d97706;">2) In Progress (Complete)</button>
         </div>
 
-        <!-- 1) NEW BUY FORM FOR TASK -->
+        <!-- 1) NEW ENTRY FORM (BUY OR SELL) -->
         <div id="task-buy-form" class="form-box" style="display: none;">
-          <h3>1) Task Buy Entry</h3>
+          <h3>1) New Task Trade Entry</h3>
 
           <label>Select Active Task:</label>
           <select id="select_active_task" style="width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 15px; font-weight: bold;"></select>
 
+          <label>Trade Type (પહેલા શું કરવું છે?):</label>
+          <select id="t_trade_side" style="width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #2563eb; border-radius: 6px; font-size: 15px; font-weight: bold; background-color: #eff6ff;">
+            <option value="BUY">BUY (પહેલા ખરીદી કરો)</option>
+            <option value="SELL">SELL (પહેલા વેચાણ / Short કરો)</option>
+          </select>
+
           <label>Date:</label>
-          <input type="date" id="t_buy_date" required />
+          <input type="date" id="t_first_date" required />
 
           <label>Stock Name:</label>
           <input type="text" id="t_stock_name" placeholder="દા.ત. RELIANCE, MARUTI" required />
 
-          <label>Buy Price:</label>
-          <input type="number" step="0.01" id="t_buy_price" placeholder="0.00" required />
+          <label id="lbl_first_price">Buy Price:</label>
+          <input type="number" step="0.01" id="t_first_price" placeholder="0.00" required />
 
-          <label>Buy Qty:</label>
-          <input type="number" step="1" id="t_buy_qty" placeholder="0" required />
+          <label id="lbl_first_qty">Buy Qty:</label>
+          <input type="number" step="1" id="t_first_qty" placeholder="0" required />
 
-          <label>Buy Charges:</label>
-          <input type="number" step="0.01" id="t_buy_charges" placeholder="0.00" required />
+          <label id="lbl_first_charges">Buy Charges:</label>
+          <input type="number" step="0.01" id="t_first_charges" placeholder="0.00" required />
 
-          <button type="button" id="save-task-buy-btn" class="submit-btn">Save Buy Trade</button>
+          <button type="button" id="save-task-first-btn" class="submit-btn">Save First Entry</button>
         </div>
 
-        <!-- 2) IN PROGRESS SELL FORM FOR TASK -->
+        <!-- 2) IN PROGRESS COMPLETE FORM -->
         <div id="task-progress-section" class="form-box" style="display: none;">
           <h3>2) Task In Progress Trades</h3>
           <div id="task-pending-list">લોડ થઈ રહ્યું છે...</div>
 
-          <div id="task-sell-form" style="display: none; margin-top: 20px; border-top: 1px solid #cbd5e1; padding-top: 15px;">
-            <h4 id="t-selected-title" style="color: #1d4ed8;">Sell Entry</h4>
+          <div id="task-complete-form" style="display: none; margin-top: 20px; border-top: 1px solid #cbd5e1; padding-top: 15px;">
+            <h4 id="t-selected-title" style="color: #1d4ed8;">Complete Trade</h4>
             <input type="hidden" id="t_selected_trade_sr" />
             <input type="hidden" id="t_selected_task_no" />
-            <input type="hidden" id="t_hidden_buy_amount" />
-            <input type="hidden" id="t_hidden_buy_charges" />
+            <input type="hidden" id="t_missing_side" />
+            <input type="hidden" id="t_existing_amount" />
+            <input type="hidden" id="t_existing_charges" />
 
-            <label>Sell Price:</label>
-            <input type="number" step="0.01" id="t_sell_price" placeholder="0.00" required />
+            <label id="lbl_second_price">Price:</label>
+            <input type="number" step="0.01" id="t_second_price" placeholder="0.00" required />
 
-            <label>Sell Qty:</label>
-            <input type="number" step="1" id="t_sell_qty" placeholder="0" required />
+            <label id="lbl_second_qty">Qty:</label>
+            <input type="number" step="1" id="t_second_qty" placeholder="0" required />
 
-            <label>Sell Charges:</label>
-            <input type="number" step="0.01" id="t_sell_charges" placeholder="0.00" required />
+            <label id="lbl_second_charges">Charges:</label>
+            <input type="number" step="0.01" id="t_second_charges" placeholder="0.00" required />
 
-            <button type="button" id="update-task-sell-btn" class="submit-btn">Complete Sell & Auto Update Level</button>
+            <button type="button" id="complete-task-trade-btn" class="submit-btn">Complete Trade & Update Level</button>
           </div>
         </div>
       </div>
 
-      <!-- 3. બધા ટાસ્કનું લિસ્ટ (Active & Closed) -->
+      <!-- 3. બધા ટાસ્કનું લિસ્ટ (Active, In Progress & Closed) -->
       <div class="card" style="margin-top: 20px;">
         <h3 style="margin-top: 0;">Tasks Status & Levels (nse_task)</h3>
         <div class="table-wrapper">
