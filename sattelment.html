@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NSE Sattelment</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="container" style="max-width: 900px;">
+      <header class="topbar" style="display: flex; justify-content: space-between; align-items: center;">
+        <h1>Sattelment Balance</h1>
+        <button onclick="window.location.href='index.html'" class="nav-btn">← Dashboard</button>
+      </header>
+
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <h3 style="margin: 0;">Pending Sattelment Records</h3>
+          <span id="last-sattelment-info" style="font-size: 13px; font-weight: bold; color: #2563eb;"></span>
+        </div>
+
+        <div class="table-wrapper">
+          <table id="report-table">
+            <thead>
+              <tr>
+                <th>Sr No</th>
+                <th>Date</th>
+                <th>Stock Name</th>
+                <th>Opening Balance</th>
+                <th>Closing Balance</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="sattelment-tbody">
+              <tr><td colspan="6">ડેટા લોડ થઈ રહ્યો છે...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="sattelment.js"></script>
+  </body>
+</html>
