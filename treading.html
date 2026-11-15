@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NSE Treading</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="container">
+      <header class="topbar" style="display: flex; justify-content: space-between; align-items: center;">
+        <h1>NSE Treading</h1>
+        <button onclick="window.location.href='index.html'" class="nav-btn">← Dashboard</button>
+      </header>
+
+      <div class="card">
+        <h2>Select Option</h2>
+        <div class="sub-btn-group">
+          <button type="button" id="btn-new" class="action-btn">1) New</button>
+          <button type="button" id="btn-in-progress" class="action-btn">2) In Progress</button>
+        </div>
+
+        <!-- 1) NEW TRADE FORM -->
+        <div id="new-trade-form" class="form-box" style="display: none;">
+          <h3>1) New Trade Entry</h3>
+          <label>Date:</label>
+          <input type="date" id="buy_date" required />
+
+          <label>Stock Name:</label>
+          <input type="text" id="stock_name" placeholder="દા.ત. RELIANCE, TCS" required />
+
+          <label>Buy Price:</label>
+          <input type="number" step="0.01" id="buy_price" placeholder="0.00" required />
+
+          <label>Buy Qty:</label>
+          <input type="number" step="1" id="buy_qty" placeholder="0" required />
+
+          <label>Buy Charges:</label>
+          <input type="number" step="0.01" id="buy_charges" placeholder="0.00" required />
+
+          <button type="button" id="save-new-btn" class="submit-btn">Save Trade</button>
+        </div>
+
+        <!-- 2) IN PROGRESS SECTION -->
+        <div id="in-progress-section" class="form-box" style="display: none;">
+          <h3>2) In Progress Trades</h3>
+          <div id="pending-list">ડેટા લોડ થઈ રહ્યો છે...</div>
+
+          <!-- પસંદ કરેલા સ્ટોકની Sell વિગતો ભરવાનું ફોર્મ -->
+          <div id="sell-trade-form" style="display: none; margin-top: 20px; border-top: 1px solid #ddd; padding-top: 15px;">
+            <h4 id="selected-stock-title">Sell Entry</h4>
+            <input type="hidden" id="selected_sr_no" />
+            <input type="hidden" id="hidden_buy_amount" />
+            <input type="hidden" id="hidden_buy_charges" />
+
+            <label>Sell Price:</label>
+            <input type="number" step="0.01" id="sell_price" placeholder="0.00" required />
+
+            <label>Sell Qty:</label>
+            <input type="number" step="1" id="sell_qty" placeholder="0" required />
+
+            <label>Sell Charges:</label>
+            <input type="number" step="0.01" id="sell_charges" placeholder="0.00" required />
+
+            <button type="button" id="update-sell-btn" class="submit-btn">Update & Complete Trade</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="treading.js"></script>
+  </body>
+</html>
