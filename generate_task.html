@@ -3,26 +3,24 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Generate NSE Task</title>
+    <title>Generate & Play NSE Task</title>
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <div class="container" style="max-width: 700px;">
+    <div class="container" style="max-width: 800px;">
       <header class="topbar" style="display: flex; justify-content: space-between; align-items: center;">
-        <h1>Generate Task</h1>
+        <h1>Generate & Play Task</h1>
         <button onclick="window.location.href='index.html'" class="nav-btn">← Dashboard</button>
       </header>
 
-      <!-- શરત ચેક થયા પછીનો મેસેજ અથવા બેલેન્સ વિગત -->
+      <!-- 1. બેલેન્સ અને નવો ટાસ્ક બનાવવાનો વિભાગ -->
       <div class="card">
         <div id="loading-msg">ચેક થઈ રહ્યું છે...</div>
 
-        <!-- જો Sattelment બાકી હોય તો આ ચેતવણી દેખાશે -->
         <div id="pending-warning" style="display: none; color: #dc2626; font-weight: bold; padding: 12px; background: #fee2e2; border-radius: 8px;">
           ⚠️ બધા જ ટ્રેડનું Sattelment પૂર્ણ થયેલું નથી! કૃપા કરીને પહેલા Sattelment વિભાગમાં જઈને બધા રેકોર્ડ પૂર્ણ કરો.
         </div>
 
-        <!-- જો બધા Sattelment પૂર્ણ હોય તો આ વિભાગ ખુલશે -->
         <div id="task-generator-area" style="display: none;">
           <div style="display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 18px;">
             <div style="flex: 1; background: #f8fafc; padding: 14px; border-radius: 8px; border: 1px solid #cbd5e1;">
@@ -37,34 +35,93 @@
 
           <button type="button" id="show-create-form-btn" class="action-btn">+ Create Task</button>
 
-          <!-- Create Task ફોર્મ -->
           <div id="create-task-form" class="form-box" style="display: none;">
             <h3>New Task Details</h3>
             <label>Task Number (Auto):</label>
             <input type="number" id="auto_task_number" readonly style="background-color: #e2e8f0; font-weight: bold;" />
 
-            <label>Task Amount:</label>
-            <input type="number" step="0.01" id="input_task_amount" placeholder="રકમ દાખલ કરો (દા.ત. 10)" required />
+            <label>Task Amount (10=Lvl 1, 20=Lvl 2, 40=Lvl 3, 80=Lvl 4):</label>
+            <input type="number" step="0.01" id="input_task_amount" placeholder="રકમ દાખલ કરો (દા.ત. 20)" required />
 
             <button type="button" id="save-task-btn" class="submit-btn">Save Task & Update Balance</button>
           </div>
         </div>
       </div>
 
-      <!-- અત્યાર સુધી બનેલા ટાસ્કનું લિસ્ટ -->
+      <!-- 2. ટાસ્ક રમવાનો વિભાગ (PLAY ACTIVE TASK: BUY / SELL) -->
+      <div class="card" id="play-task-card" style="margin-top: 20px; display: none;">
+        <h2 style="margin-top: 0;">Play Active Task</h2>
+        <div class="sub-btn-group">
+          <button type="button" id="btn-task-new" class="action-btn">1) New Buy Entry</button>
+          <button type="button" id="btn-task-progress" class="action-btn" style="background-color: #d97706;">2) In Progress (Sell)</button>
+        </div>
+
+        <!-- 1) NEW BUY FORM FOR TASK -->
+        <div id="task-buy-form" class="form-box" style="display: none;">
+          <h3>1) Task Buy Entry</h3>
+
+          <label>Select Active Task:</label>
+          <select id="select_active_task" style="width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 15px; font-weight: bold;"></select>
+
+          <label>Date:</label>
+          <input type="date" id="t_buy_date" required />
+
+          <label>Stock Name:</label>
+          <input type="text" id="t_stock_name" placeholder="દા.ત. RELIANCE, MARUTI" required />
+
+          <label>Buy Price:</label>
+          <input type="number" step="0.01" id="t_buy_price" placeholder="0.00" required />
+
+          <label>Buy Qty:</label>
+          <input type="number" step="1" id="t_buy_qty" placeholder="0" required />
+
+          <label>Buy Charges:</label>
+          <input type="number" step="0.01" id="t_buy_charges" placeholder="0.00" required />
+
+          <button type="button" id="save-task-buy-btn" class="submit-btn">Save Buy Trade</button>
+        </div>
+
+        <!-- 2) IN PROGRESS SELL FORM FOR TASK -->
+        <div id="task-progress-section" class="form-box" style="display: none;">
+          <h3>2) Task In Progress Trades</h3>
+          <div id="task-pending-list">લોડ થઈ રહ્યું છે...</div>
+
+          <div id="task-sell-form" style="display: none; margin-top: 20px; border-top: 1px solid #cbd5e1; padding-top: 15px;">
+            <h4 id="t-selected-title" style="color: #1d4ed8;">Sell Entry</h4>
+            <input type="hidden" id="t_selected_trade_sr" />
+            <input type="hidden" id="t_selected_task_no" />
+            <input type="hidden" id="t_hidden_buy_amount" />
+            <input type="hidden" id="t_hidden_buy_charges" />
+
+            <label>Sell Price:</label>
+            <input type="number" step="0.01" id="t_sell_price" placeholder="0.00" required />
+
+            <label>Sell Qty:</label>
+            <input type="number" step="1" id="t_sell_qty" placeholder="0" required />
+
+            <label>Sell Charges:</label>
+            <input type="number" step="0.01" id="t_sell_charges" placeholder="0.00" required />
+
+            <button type="button" id="update-task-sell-btn" class="submit-btn">Complete Sell & Auto Update Level</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. બધા ટાસ્કનું લિસ્ટ (Active & Closed) -->
       <div class="card" style="margin-top: 20px;">
-        <h3 style="margin-top: 0;">Created Tasks History (nse_task)</h3>
+        <h3 style="margin-top: 0;">Tasks Status & Levels (nse_task)</h3>
         <div class="table-wrapper">
           <table id="report-table">
             <thead>
               <tr>
-                <th>Sr No</th>
-                <th>Task Number</th>
-                <th>Task Amount</th>
+                <th>Task No</th>
+                <th>Current Amount</th>
+                <th>Task Level</th>
+                <th>Status</th>
               </tr>
             </thead>
             <tbody id="nse-task-tbody">
-              <tr><td colspan="3">લોડ થઈ રહ્યું છે...</td></tr>
+              <tr><td colspan="4">લોડ થઈ રહ્યું છે...</td></tr>
             </tbody>
           </table>
         </div>
