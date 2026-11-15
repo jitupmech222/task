@@ -10,10 +10,12 @@ buttons.forEach((button) => {
 
     if (name === "Treading") {
       window.location.href = "treading.html";
+    } else if (name === "Sattelment") {
+      // Sattelment બટન દબાવતા Sattelment પેજ ખોલો
+      window.location.href = "sattelment.html";
     } else if (name === "Report") {
       window.location.href = "report.html";
     } else if (name === "Data") {
-      // Data બટન દબાવતા Data પેજ ખોલો
       window.location.href = "data.html";
     } else {
       statusText.textContent = `${name} button selected. Functionality will be added later.`;
