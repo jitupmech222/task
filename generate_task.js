@@ -95,7 +95,7 @@ async function loadNseTasks() {
 
     tasks.forEach((t) => {
       const amt = Number(t.task_amount);
-      const lvl = t.task_level || calculateTaskLevel(amt);
+      const lvl = t.task_level !== null && t.task_level !== undefined ? t.task_level : calculateTaskLevel(amt);
       const status = t.status || (amt <= 5 ? "Closed" : "Active");
       const statusBadge =
         status === "Active"
