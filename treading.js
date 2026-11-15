@@ -1,4 +1,4 @@
-// Supabase setup (તમારી સાચી URL અને Key સાથે)
+// Supabase setup
 const supabaseUrl = "https://bgfwwhivzgzzchhkgkqr.supabase.co";
 const supabaseKey = "sb_publishable_8YLsit4SKIqzKowkIBLitw_QN3D4RxK";
 const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
@@ -87,12 +87,13 @@ btnInProgress.addEventListener("click", async () => {
   data.forEach((item) => {
     const div = document.createElement("div");
     div.className = "pending-item";
-    div.innerHTML = `<strong>${item.stock_name}</strong> — Buy Qty: ${item.buy_qty}`;
+    // અહીં stock_name, buy_qty અને buy_price ત્રણેય બતાવવામાં આવ્યા છે
+    div.innerHTML = `<strong>${item.stock_name}</strong> — Buy Qty: ${item.buy_qty} | Buy Price: ₹${item.buy_price}`;
 
     // કોઈપણ એક સ્ટોક પર ક્લિક કરતા Sell ફોર્મ ખોલો
     div.addEventListener("click", () => {
       sellTradeForm.style.display = "block";
-      document.getElementById("selected-stock-title").innerText = `Sell Entry: ${item.stock_name} (Buy Qty: ${item.buy_qty})`;
+      document.getElementById("selected-stock-title").innerText = `Sell Entry: ${item.stock_name} (Buy Qty: ${item.buy_qty} @ ₹${item.buy_price})`;
       document.getElementById("selected_sr_no").value = item.sr_no;
       document.getElementById("hidden_buy_amount").value = item.buy_amount;
       document.getElementById("hidden_buy_charges").value = item.buy_charges || 0;
