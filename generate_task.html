@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Generate NSE Task</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="container" style="max-width: 700px;">
+      <header class="topbar" style="display: flex; justify-content: space-between; align-items: center;">
+        <h1>Generate Task</h1>
+        <button onclick="window.location.href='index.html'" class="nav-btn">← Dashboard</button>
+      </header>
+
+      <!-- શરત ચેક થયા પછીનો મેસેજ અથવા બેલેન્સ વિગત -->
+      <div class="card">
+        <div id="loading-msg">ચેક થઈ રહ્યું છે...</div>
+
+        <!-- જો Sattelment બાકી હોય તો આ ચેતવણી દેખાશે -->
+        <div id="pending-warning" style="display: none; color: #dc2626; font-weight: bold; padding: 12px; background: #fee2e2; border-radius: 8px;">
+          ⚠️ બધા જ ટ્રેડનું Sattelment પૂર્ણ થયેલું નથી! કૃપા કરીને પહેલા Sattelment વિભાગમાં જઈને બધા રેકોર્ડ પૂર્ણ કરો.
+        </div>
+
+        <!-- જો બધા Sattelment પૂર્ણ હોય તો આ વિભાગ ખુલશે -->
+        <div id="task-generator-area" style="display: none;">
+          <div style="display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 18px;">
+            <div style="flex: 1; background: #f8fafc; padding: 14px; border-radius: 8px; border: 1px solid #cbd5e1;">
+              <div style="font-size: 13px; color: #64748b;">Last Closing Balance</div>
+              <div id="display-closing-bal" style="font-size: 20px; font-weight: bold; color: #1e293b; margin-top: 4px;">₹0.00</div>
+            </div>
+            <div style="flex: 1; background: #eff6ff; padding: 14px; border-radius: 8px; border: 1px solid #93c5fd;">
+              <div style="font-size: 13px; color: #1d4ed8;">Amount for Task (Closing - 10,000)</div>
+              <div id="display-task-available" style="font-size: 20px; font-weight: bold; color: #1d4ed8; margin-top: 4px;">₹0.00</div>
+            </div>
+          </div>
+
+          <button type="button" id="show-create-form-btn" class="action-btn">+ Create Task</button>
+
+          <!-- Create Task ફોર્મ -->
+          <div id="create-task-form" class="form-box" style="display: none;">
+            <h3>New Task Details</h3>
+            <label>Task Number (Auto):</label>
+            <input type="number" id="auto_task_number" readonly style="background-color: #e2e8f0; font-weight: bold;" />
+
+            <label>Task Amount:</label>
+            <input type="number" step="0.01" id="input_task_amount" placeholder="રકમ દાખલ કરો (દા.ત. 10)" required />
+
+            <button type="button" id="save-task-btn" class="submit-btn">Save Task & Update Balance</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- અત્યાર સુધી બનેલા ટાસ્કનું લિસ્ટ -->
+      <div class="card" style="margin-top: 20px;">
+        <h3 style="margin-top: 0;">Created Tasks History (nse_task)</h3>
+        <div class="table-wrapper">
+          <table id="report-table">
+            <thead>
+              <tr>
+                <th>Sr No</th>
+                <th>Task Number</th>
+                <th>Task Amount</th>
+              </tr>
+            </thead>
+            <tbody id="nse-task-tbody">
+              <tr><td colspan="3">લોડ થઈ રહ્યું છે...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="generate_task.js"></script>
+  </body>
+</html>
