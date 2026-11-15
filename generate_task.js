@@ -16,8 +16,8 @@ const playTaskCard = document.getElementById("play-task-card");
 
 // રકમ પરથી ઓટો Level ગણવાનું ફંક્શન (10=Lvl 1, 20=Lvl 2, 40=Lvl 3, 80=Lvl 4...)
 function calculateTaskLevel(amount) {
-  if (amount <= 5) return 0; // Closed
-  if (amount < 20) return 1; // 5.01 થી 19.99 -> Level 1
+  if (amount <= 5) return 0;
+  if (amount < 20) return 1;
   return Math.floor(Math.log2(amount / 10)) + 1;
 }
 
@@ -68,7 +68,7 @@ async function initializePage() {
   await loadNseTasks();
 }
 
-// 2. nse_task ટેબલમાંથી બધા ટાસ્ક લોડ કરો અને Active ટાસ્ક ડ્રોપડાઉનમાં ભરો
+// 2. nse_task ટેબલ લોડ કરો અને In Progress (buy_price OR sell_price null) ચેક કરો
 async function loadNseTasks() {
   const tbody = document.getElementById("nse-task-tbody");
   const selectDropdown = document.getElementById("select_active_task");
@@ -83,6 +83,16 @@ async function loadNseTasks() {
     return;
   }
 
+  // જ્યાં buy_price અથવા sell_price બંનેમાંથી કોઈ એક ખાલી હોય તેવા ટ્રેડ લાવો
+  const { data: openTrades } = await supabaseClient
+    .from("nse_task_trades")
+    .select("task_number")
+    .or("buy_price.is.null,sell_price.is.null");
+
+  const inProgressTaskNumbers = new Set(
+    (openTrades || []).map((tr) => Number(tr.task_number))
+  );
+
   activeTasksList = [];
   selectDropdown.innerHTML = "";
 
@@ -95,12 +105,22 @@ async function loadNseTasks() {
 
     tasks.forEach((t) => {
       const amt = Number(t.task_amount);
-      const lvl = t.task_level !== null && t.task_level !== undefined ? t.task_level : calculateTaskLevel(amt);
-      const status = t.status || (amt <= 5 ? "Closed" : "Active");
-      const statusBadge =
-        status === "Active"
-          ? `<span style="background:#dcfce7; color:#15803d; padding:3px 8px; border-radius:4px; font-weight:bold;">Active</span>`
-          : `<span style="background:#fee2e2; color:#b91c1c; padding:3px 8px; border-radius:4px; font-weight:bold;">Closed</span>`;
+      const lvl = calculateTaskLevel(amt);
+      const isCurrentlyPlaying = inProgressTaskNumbers.has(Number(t.task_number));
+
+      let displayStatus = t.status || (amt <= 5 ? "Closed" : "Active");
+      if (displayStatus !== "Closed" && isCurrentlyPlaying) {
+        displayStatus = "In Progress";
+      }
+
+      let statusBadge = "";
+      if (displayStatus === "Closed") {
+        statusBadge = `<span style="background:#fee2e2; color:#b91c1c; padding:3px 8px; border-radius:4px; font-weight:bold;">Closed</span>`;
+      } else if (displayStatus === "In Progress") {
+        statusBadge = `<span style="background:#fef3c7; color:#b45309; padding:3px 8px; border-radius:4px; font-weight:bold;">In Progress</span>`;
+      } else {
+        statusBadge = `<span style="background:#dcfce7; color:#15803d; padding:3px 8px; border-radius:4px; font-weight:bold;">Active</span>`;
+      }
 
       const tr = document.createElement("tr");
       tr.innerHTML = `
@@ -111,8 +131,7 @@ async function loadNseTasks() {
       `;
       tbody.appendChild(tr);
 
-      // જો ટાસ્ક Active હોય તો Play વિભાગના ડ્રોપડાઉનમાં ઉમેરો
-      if (status === "Active") {
+      if (displayStatus === "Active") {
         activeTasksList.push(t);
         const opt = document.createElement("option");
         opt.value = t.task_number;
@@ -185,78 +204,124 @@ document.getElementById("save-task-btn").addEventListener("click", async () => {
 });
 
 // ==========================================
-// PLAY ACTIVE TASK (1. NEW BUY & 2. IN PROGRESS SELL)
+// PLAY ACTIVE TASK (BUY OR SELL FIRST)
 // ==========================================
 
 const taskBuyForm = document.getElementById("task-buy-form");
 const taskProgressSection = document.getElementById("task-progress-section");
-const taskSellForm = document.getElementById("task-sell-form");
+const taskCompleteForm = document.getElementById("task-complete-form");
+const tradeSideSelect = document.getElementById("t_trade_side");
 
-// 1) New Buy Entry બટન
+// BUY અથવા SELL પસંદ કરતા ફોર્મના લેબલ બદલો
+tradeSideSelect.addEventListener("change", () => {
+  const side = tradeSideSelect.value;
+  if (side === "BUY") {
+    document.getElementById("lbl_first_price").innerText = "Buy Price:";
+    document.getElementById("lbl_first_qty").innerText = "Buy Qty:";
+    document.getElementById("lbl_first_charges").innerText = "Buy Charges:";
+  } else {
+    document.getElementById("lbl_first_price").innerText = "Sell Price:";
+    document.getElementById("lbl_first_qty").innerText = "Sell Qty:";
+    document.getElementById("lbl_first_charges").innerText = "Sell Charges:";
+  }
+});
+
+// 1) New Entry બટન
 document.getElementById("btn-task-new").addEventListener("click", () => {
   taskBuyForm.style.display = "block";
   taskProgressSection.style.display = "none";
 });
 
-// Buy વિગતો nse_task_trades માં સેવ કરો
-document.getElementById("save-task-buy-btn").addEventListener("click", async () => {
+// પ્રથમ એન્ટ્રી (BUY અથવા SELL) સેવ કરો
+document.getElementById("save-task-first-btn").addEventListener("click", async () => {
   const task_number = document.getElementById("select_active_task").value;
-  const date = document.getElementById("t_buy_date").value;
+  const side = tradeSideSelect.value; // "BUY" અથવા "SELL"
+  const date = document.getElementById("t_first_date").value;
   const stock_name = document.getElementById("t_stock_name").value.trim().toUpperCase();
-  const buy_price = parseFloat(document.getElementById("t_buy_price").value);
-  const buy_qty = parseFloat(document.getElementById("t_buy_qty").value);
-  const buy_charges = parseFloat(document.getElementById("t_buy_charges").value) || 0;
+  const price = parseFloat(document.getElementById("t_first_price").value);
+  const qty = parseFloat(document.getElementById("t_first_qty").value);
+  const charges = parseFloat(document.getElementById("t_first_charges").value) || 0;
 
   if (!task_number) {
-    alert("કૃપા કરીને પહેલા કોઈ Active Task પસંદ કરો!");
+    alert("કોઈ Active Task ઉપલબ્ધ નથી!");
     return;
   }
 
-  if (!date || !stock_name || isNaN(buy_price) || isNaN(buy_qty)) {
-    alert("કૃપા કરીને બધી Buy વિગતો ભરો!");
+  if (!date || !stock_name || isNaN(price) || isNaN(qty)) {
+    alert("કૃપા કરીને બધી વિગતો ભરો!");
     return;
   }
 
-  const buy_amount = buy_price * buy_qty;
-
-  const { error } = await supabaseClient
+  // એક ટાસ્કમાં એક જ ટ્રેડ ચાલુ રહી શકે તેની ખાતરી કરો
+  const { data: existingOpen } = await supabaseClient
     .from("nse_task_trades")
-    .insert([
-      {
-        task_number: Number(task_number),
-        date: date,
-        stock_name: stock_name,
-        buy_price: buy_price,
-        buy_qty: buy_qty,
-        buy_charges: buy_charges,
-        buy_amount: buy_amount
-      }
-    ]);
+    .select("sr_no")
+    .eq("task_number", Number(task_number))
+    .or("buy_price.is.null,sell_price.is.null");
+
+  if (existingOpen && existingOpen.length > 0) {
+    alert(`Task ${task_number} પહેલેથી જ In Progress છે! પહેલા તે ટ્રેડ પૂર્ણ કરો.`);
+    await loadNseTasks();
+    return;
+  }
+
+  const amount = price * qty;
+
+  // BUY હોય તો buy કોલમ ભરો, SELL હોય તો sell કોલમ ભરો
+  const payload = {
+    task_number: Number(task_number),
+    date: date,
+    stock_name: stock_name
+  };
+
+  if (side === "BUY") {
+    payload.buy_price = price;
+    payload.buy_qty = qty;
+    payload.buy_charges = charges;
+    payload.buy_amount = amount;
+  } else {
+    payload.sell_price = price;
+    payload.sell_qty = qty;
+    payload.sell_charges = charges;
+    payload.sell_amount = amount;
+  }
+
+  const { error } = await supabaseClient.from("nse_task_trades").insert([payload]);
 
   if (error) {
-    alert("Buy એન્ટ્રી સેવ કરવામાં એરર આવી: " + error.message);
-  } else {
-    alert(`Task ${task_number} માટે ${stock_name} ની Buy એન્ટ્રી સેવ થઈ ગઈ!`);
-    document.getElementById("t_stock_name").value = "";
-    document.getElementById("t_buy_price").value = "";
-    document.getElementById("t_buy_qty").value = "";
-    document.getElementById("t_buy_charges").value = "";
+    alert("એન્ટ્રી સેવ કરવામાં એરર આવી: " + error.message);
+    return;
   }
+
+  await supabaseClient
+    .from("nse_task")
+    .update({ status: "In Progress" })
+    .eq("task_number", Number(task_number));
+
+  alert(`Task ${task_number} માટે ${stock_name} ની ${side} એન્ટ્રી સેવ થઈ ગઈ અને સ્ટેટસ 'In Progress' થઈ ગયું છે!`);
+  document.getElementById("t_stock_name").value = "";
+  document.getElementById("t_first_price").value = "";
+  document.getElementById("t_first_qty").value = "";
+  document.getElementById("t_first_charges").value = "";
+  taskBuyForm.style.display = "none";
+
+  await loadNseTasks();
 });
 
-// 2) In Progress (Sell) બટન
+// 2) In Progress (Complete) બટન
 document.getElementById("btn-task-progress").addEventListener("click", async () => {
   taskBuyForm.style.display = "none";
   taskProgressSection.style.display = "block";
-  taskSellForm.style.display = "none";
+  taskCompleteForm.style.display = "none";
 
   const pendingList = document.getElementById("task-pending-list");
   pendingList.innerHTML = "લોડ થઈ રહ્યું છે...";
 
+  // જ્યાં buy_price અથવા sell_price ખાલી હોય તેવા બધા ટ્રેડ લાવો
   const { data, error } = await supabaseClient
     .from("nse_task_trades")
     .select("*")
-    .is("sell_price", null)
+    .or("buy_price.is.null,sell_price.is.null")
     .order("sr_no", { ascending: false });
 
   if (error) {
@@ -271,60 +336,86 @@ document.getElementById("btn-task-progress").addEventListener("click", async () 
 
   pendingList.innerHTML = "";
   data.forEach((item) => {
+    const isBuyDone = item.buy_price !== null;
+    const doneSide = isBuyDone ? "BUY" : "SELL";
+    const missingSide = isBuyDone ? "SELL" : "BUY";
+    const donePrice = isBuyDone ? item.buy_price : item.sell_price;
+    const doneQty = isBuyDone ? item.buy_qty : item.sell_qty;
+
     const div = document.createElement("div");
     div.className = "pending-item";
-    div.innerHTML = `<strong>[Task ${item.task_number}] ${item.stock_name}</strong> — Buy Qty: ${item.buy_qty} | Buy Price: ₹${item.buy_price}`;
+    div.innerHTML = `<strong>[Task ${item.task_number}] ${item.stock_name}</strong> — [${doneSide}] Qty: ${doneQty} | Price: ₹${donePrice}`;
 
     div.addEventListener("click", () => {
-      taskSellForm.style.display = "block";
-      document.getElementById("t-selected-title").innerText = `Task ${item.task_number} Sell Entry: ${item.stock_name} (Buy Qty: ${item.buy_qty} @ ₹${item.buy_price})`;
+      taskCompleteForm.style.display = "block";
+      document.getElementById("t-selected-title").innerText = `Task ${item.task_number} — Complete ${missingSide} Entry for ${item.stock_name}`;
+      document.getElementById("lbl_second_price").innerText = `${missingSide} Price:`;
+      document.getElementById("lbl_second_qty").innerText = `${missingSide} Qty:`;
+      document.getElementById("lbl_second_charges").innerText = `${missingSide} Charges:`;
+
       document.getElementById("t_selected_trade_sr").value = item.sr_no;
       document.getElementById("t_selected_task_no").value = item.task_number;
-      document.getElementById("t_hidden_buy_amount").value = item.buy_amount;
-      document.getElementById("t_hidden_buy_charges").value = item.buy_charges || 0;
-      document.getElementById("t_sell_qty").value = item.buy_qty;
+      document.getElementById("t_missing_side").value = missingSide;
+      document.getElementById("t_existing_amount").value = isBuyDone ? item.buy_amount : item.sell_amount;
+      document.getElementById("t_existing_charges").value = isBuyDone ? (item.buy_charges || 0) : (item.sell_charges || 0);
+      document.getElementById("t_second_qty").value = doneQty;
     });
 
     pendingList.appendChild(div);
   });
 });
 
-// Sell પૂર્ણ કરો અને net_profit_loss મુજબ Level Up / Down / Closed કરો
-document.getElementById("update-task-sell-btn").addEventListener("click", async () => {
+// બીજી બાજુ (SELL અથવા BUY) પૂર્ણ કરીને ટ્રેડ ફિનિશ કરો
+document.getElementById("complete-task-trade-btn").addEventListener("click", async () => {
   const tradeSrNo = document.getElementById("t_selected_trade_sr").value;
   const taskNo = Number(document.getElementById("t_selected_task_no").value);
-  const buy_amount = parseFloat(document.getElementById("t_hidden_buy_amount").value);
-  const buy_charges = parseFloat(document.getElementById("t_hidden_buy_charges").value);
+  const missingSide = document.getElementById("t_missing_side").value; // "SELL" અથવા "BUY"
+  const existingAmount = parseFloat(document.getElementById("t_existing_amount").value);
+  const existingCharges = parseFloat(document.getElementById("t_existing_charges").value);
 
-  const sell_price = parseFloat(document.getElementById("t_sell_price").value);
-  const sell_qty = parseFloat(document.getElementById("t_sell_qty").value);
-  const sell_charges = parseFloat(document.getElementById("t_sell_charges").value) || 0;
+  const secondPrice = parseFloat(document.getElementById("t_second_price").value);
+  const secondQty = parseFloat(document.getElementById("t_second_qty").value);
+  const secondCharges = parseFloat(document.getElementById("t_second_charges").value) || 0;
 
-  if (isNaN(sell_price) || isNaN(sell_qty)) {
-    alert("કૃપા કરીને Sell Price અને Sell Qty દાખલ કરો!");
+  if (isNaN(secondPrice) || isNaN(secondQty)) {
+    alert("કૃપા કરીને Price અને Qty દાખલ કરો!");
     return;
   }
 
-  // ગણતરીઓ:
-  const sell_amount = sell_price * sell_qty;
+  const secondAmount = secondPrice * secondQty;
+
+  // Buy અને Sell ની કુલ રકમ નક્કી કરો
+  const buy_amount = missingSide === "BUY" ? secondAmount : existingAmount;
+  const sell_amount = missingSide === "SELL" ? secondAmount : existingAmount;
+
   const total_trn_amount = buy_amount + sell_amount;
-  const total_charges = buy_charges + sell_charges;
+  const total_charges = existingCharges + secondCharges;
   const gross_profit_loss = sell_amount - buy_amount;
   const net_profit_loss = gross_profit_loss - total_charges;
 
-  // 1. nse_task_trades ટેબલમાં Sell વિગતો અપડેટ કરો
+  const updatePayload = {
+    buy_amount: buy_amount,
+    sell_amount: sell_amount,
+    total_trn_amount: total_trn_amount,
+    total_charges: total_charges,
+    gross_profit_loss: gross_profit_loss,
+    net_profit_loss: net_profit_loss
+  };
+
+  if (missingSide === "SELL") {
+    updatePayload.sell_price = secondPrice;
+    updatePayload.sell_qty = secondQty;
+    updatePayload.sell_charges = secondCharges;
+  } else {
+    updatePayload.buy_price = secondPrice;
+    updatePayload.buy_qty = secondQty;
+    updatePayload.buy_charges = secondCharges;
+  }
+
+  // 1. nse_task_trades ટેબલમાં ટ્રેડ પૂર્ણ કરો
   const { error: tradeErr } = await supabaseClient
     .from("nse_task_trades")
-    .update({
-      sell_price: sell_price,
-      sell_qty: sell_qty,
-      sell_charges: sell_charges,
-      sell_amount: sell_amount,
-      total_trn_amount: total_trn_amount,
-      total_charges: total_charges,
-      gross_profit_loss: gross_profit_loss,
-      net_profit_loss: net_profit_loss
-    })
+    .update(updatePayload)
     .eq("sr_no", tradeSrNo);
 
   if (tradeErr) {
@@ -332,7 +423,7 @@ document.getElementById("update-task-sell-btn").addEventListener("click", async 
     return;
   }
 
-  // 2. હાલના Task ની જૂની રકમ લાવો અને net_profit_loss ઉમેરો/બાદ કરો
+  // 2. હાલના Task ની રકમ અને Level અપડેટ કરો
   const { data: taskRow, error: fetchTaskErr } = await supabaseClient
     .from("nse_task")
     .select("*")
@@ -348,7 +439,6 @@ document.getElementById("update-task-sell-btn").addEventListener("click", async 
   let newTaskAmount = oldTaskAmount + net_profit_loss;
   if (newTaskAmount < 0) newTaskAmount = 0;
 
-  // 3. નિયમ મુજબ Level અને Status (<= 5 હોય તો Closed) નક્કી કરો
   let newStatus = "Active";
   let newLevel = calculateTaskLevel(newTaskAmount);
 
@@ -357,7 +447,6 @@ document.getElementById("update-task-sell-btn").addEventListener("click", async 
     newLevel = 0;
   }
 
-  // 4. nse_task ટેબલમાં નવી રકમ, નવું લેવલ અને સ્ટેટસ અપડેટ કરો
   const { error: updateTaskErr } = await supabaseClient
     .from("nse_task")
     .update({
@@ -373,7 +462,7 @@ document.getElementById("update-task-sell-btn").addEventListener("click", async 
     let statusMsg =
       newStatus === "Closed"
         ? "🛑 રકમ ₹5 કે તેથી ઓછી થવાથી આ ટાસ્ક CLOSED થઈ ગયો છે."
-        : `🚀 નવું લેવલ: Level ${newLevel} (Active)`;
+        : `🚀 નવું લેવલ: Level ${newLevel} (ફરીથી Active - નવો ટ્રેડ કરી શકાશે)`;
 
     alert(
       `ટ્રેડ પૂર્ણ થયો!\n` +
@@ -382,11 +471,10 @@ document.getElementById("update-task-sell-btn").addEventListener("click", async 
       statusMsg
     );
 
-    document.getElementById("t_sell_price").value = "";
-    document.getElementById("t_sell_charges").value = "";
-    taskSellForm.style.display = "none";
+    document.getElementById("t_second_price").value = "";
+    document.getElementById("t_second_charges").value = "";
+    taskCompleteForm.style.display = "none";
 
-    // પેજ અને લિસ્ટ રિફ્રેશ કરો
     await loadNseTasks();
     document.getElementById("btn-task-progress").click();
   }
