@@ -10,15 +10,17 @@ buttons.forEach((button) => {
 
     if (name === "Treading") {
       window.location.href = "treading.html";
+    } else if (name === "Generate task") {
+      // Generate task બટન દબાવતા ટાસ્ક પેજ ખોલો
+      window.location.href = "generate_task.html";
     } else if (name === "Sattelment") {
-      // Sattelment બટન દબાવતા Sattelment પેજ ખોલો
       window.location.href = "sattelment.html";
     } else if (name === "Report") {
       window.location.href = "report.html";
     } else if (name === "Data") {
       window.location.href = "data.html";
     } else {
-      statusText.textContent = `${name} button selected. Functionality will be added later.`;
+      statusText.textContent = `${name} button selected.`;
     }
   });
 });
