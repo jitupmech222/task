@@ -9,8 +9,11 @@ buttons.forEach((button) => {
     const name = button.textContent.trim();
 
     if (name === "Treading") {
-      // Treading બટન દબાવતા બીજું વેબપેજ ખોલો
+      // Treading બટન દબાવતા Treading પેજ ખોલો
       window.location.href = "treading.html";
+    } else if (name === "Report") {
+      // Report બટન દબાવતા Report પેજ ખોલો
+      window.location.href = "report.html";
     } else {
       statusText.textContent = `${name} button selected. Functionality will be added later.`;
     }
