@@ -3,8 +3,9 @@ const supabaseUrl = "https://bgfwwhivzgzzchhkgkqr.supabase.co";
 const supabaseKey = "sb_publishable_8YLsit4SKIqzKowkIBLitw_QN3D4RxK";
 const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-// SAHI બ્રોકરેજ અને ટેક્સ ગણતરી (PDF B-1 થી B-5 મુજબ 100% ચોક્કસ)
+// SAHI બ્રોકરેજ અને ટેક્સ ગણતરી
 function calculateSahiCharges(segment, side, price, qty) {
+  if (!segment || !side) return 0;
   const turnover = price * qty;
   if (isNaN(turnover) || turnover <= 0) return 0;
 
@@ -53,7 +54,6 @@ function calculateTaskLevel(amount) {
   return Math.floor(Math.log2(amount / 10)) + 1;
 }
 
-// 1. પેજ લોડ થતા શરતો ચેક કરો
 async function initializePage() {
   try {
     loadingMsg.style.display = "block";
@@ -105,7 +105,6 @@ async function initializePage() {
   }
 }
 
-// 2. nse_task ટેબલ લોડ કરો
 async function loadNseTasks() {
   const tbody = document.getElementById("nse-task-tbody");
   const selectDropdown = document.getElementById("select_active_task");
@@ -242,7 +241,7 @@ document.getElementById("save-task-btn").addEventListener("click", async () => {
 });
 
 // ==========================================
-// PLAY ACTIVE TASK (BUY OR SELL FIRST + AUTO CHARGES)
+// PLAY ACTIVE TASK
 // ==========================================
 
 const taskBuyForm = document.getElementById("task-buy-form");
@@ -273,10 +272,14 @@ tradeSideSelect.addEventListener("change", () => {
     document.getElementById("lbl_first_price").innerText = "Buy Price:";
     document.getElementById("lbl_first_qty").innerText = "Buy Qty:";
     document.getElementById("lbl_first_charges").innerText = "Buy Charges (Auto Calculated):";
-  } else {
+  } else if (side === "SELL") {
     document.getElementById("lbl_first_price").innerText = "Sell Price:";
     document.getElementById("lbl_first_qty").innerText = "Sell Qty:";
     document.getElementById("lbl_first_charges").innerText = "Sell Charges (Auto Calculated):";
+  } else {
+    document.getElementById("lbl_first_price").innerText = "Price:";
+    document.getElementById("lbl_first_qty").innerText = "Qty:";
+    document.getElementById("lbl_first_charges").innerText = "Charges (Auto Calculated):";
   }
   updateTaskFirstAutoCharges();
 });
@@ -288,6 +291,7 @@ document.getElementById("btn-task-new").addEventListener("click", () => {
 
 document.getElementById("save-task-first-btn").addEventListener("click", async () => {
   const task_number = document.getElementById("select_active_task").value;
+  const seg = tSegmentSelect.value;
   const side = tradeSideSelect.value;
   const date = document.getElementById("t_first_date").value;
   const stock_name = document.getElementById("t_stock_name").value.trim().toUpperCase();
@@ -297,6 +301,16 @@ document.getElementById("save-task-first-btn").addEventListener("click", async (
 
   if (!task_number) {
     alert("કોઈ Active Task ઉપલબ્ધ નથી!");
+    return;
+  }
+
+  if (!seg) {
+    alert("કૃપા કરીને પહેલા Segment પસંદ કરો!");
+    return;
+  }
+
+  if (!side) {
+    alert("કૃપા કરીને Trade Type (BUY અથવા SELL) પસંદ કરો!");
     return;
   }
 
@@ -349,6 +363,8 @@ document.getElementById("save-task-first-btn").addEventListener("click", async (
     .eq("task_number", Number(task_number));
 
   alert(`Task ${task_number} માટે ${stock_name} ની ${side} એન્ટ્રી (Charges: ₹${charges}) સેવ થઈ ગઈ!`);
+  tSegmentSelect.value = "";
+  tradeSideSelect.value = "";
   document.getElementById("t_stock_name").value = "";
   tFirstPriceInput.value = "";
   tFirstQtyInput.value = "";
@@ -358,7 +374,6 @@ document.getElementById("save-task-first-btn").addEventListener("click", async (
   await loadNseTasks();
 });
 
-// Second Entry ના ચાર્જ ઓટો ગણવાનું ફંક્શન
 const tCompleteSegmentSelect = document.getElementById("t_complete_segment");
 const tSecondPriceInput = document.getElementById("t_second_price");
 const tSecondQtyInput = document.getElementById("t_second_qty");
@@ -419,6 +434,7 @@ document.getElementById("btn-task-progress").addEventListener("click", async () 
       document.getElementById("lbl_second_qty").innerText = `${missingSide} Qty:`;
       document.getElementById("lbl_second_charges").innerText = `${missingSide} Charges (Auto Calculated):`;
 
+      tCompleteSegmentSelect.value = "";
       document.getElementById("t_selected_trade_sr").value = item.sr_no;
       document.getElementById("t_selected_task_no").value = item.task_number;
       document.getElementById("t_missing_side").value = missingSide;
@@ -434,6 +450,7 @@ document.getElementById("btn-task-progress").addEventListener("click", async () 
 });
 
 document.getElementById("complete-task-trade-btn").addEventListener("click", async () => {
+  const seg = tCompleteSegmentSelect.value;
   const tradeSrNo = document.getElementById("t_selected_trade_sr").value;
   const taskNo = Number(document.getElementById("t_selected_task_no").value);
   const missingSide = document.getElementById("t_missing_side").value;
@@ -443,6 +460,11 @@ document.getElementById("complete-task-trade-btn").addEventListener("click", asy
   const secondPrice = parseFloat(tSecondPriceInput.value);
   const secondQty = parseFloat(tSecondQtyInput.value);
   const secondCharges = parseFloat(tSecondChargesInput.value) || 0;
+
+  if (!seg) {
+    alert("કૃપા કરીને પહેલા Segment પસંદ કરો!");
+    return;
+  }
 
   if (isNaN(secondPrice) || isNaN(secondQty)) {
     alert("કૃપા કરીને Price અને Qty દાખલ કરો!");
