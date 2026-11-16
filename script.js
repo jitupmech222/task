@@ -23,6 +23,8 @@ buttons.forEach((button) => {
       window.location.href = "report.html";
     } else if (name === "Data") {
       window.location.href = "data.html";
+    } else if (name === "P/L report") {
+      window.location.href = "pl_report.html";
     }
   });
 });
@@ -110,6 +112,5 @@ async function loadDashboardOverview() {
   }
 }
 
-// પેજ પૂરું લોડ થયા પછી તરત Overview ચલાવો
 window.addEventListener("DOMContentLoaded", loadDashboardOverview);
 loadDashboardOverview();
