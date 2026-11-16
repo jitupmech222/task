@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Date-Wise P/L Report</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  </head>
+  <body>
+    <div class="container" style="max-width: 800px;">
+      <header class="topbar" style="display: flex; justify-content: space-between; align-items: center;">
+        <h1>Date-Wise P/L Report</h1>
+        <button onclick="window.location.href='index.html'" class="nav-btn">← Dashboard</button>
+      </header>
+
+      <!-- તારીખ પસંદ કરવાનો વિભાગ (From - Upto) -->
+      <div class="card">
+        <h3 style="margin-top: 0;">Select Date Range</h3>
+        <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end;">
+          <div style="flex: 1; min-width: 140px;">
+            <label style="font-size: 13px; font-weight: bold;">From Date:</label>
+            <input type="date" id="from_date" style="width: 100%; padding: 9px; margin-top: 4px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box;" />
+          </div>
+          <div style="flex: 1; min-width: 140px;">
+            <label style="font-size: 13px; font-weight: bold;">Upto Date:</label>
+            <input type="date" id="upto_date" style="width: 100%; padding: 9px; margin-top: 4px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box;" />
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button type="button" id="btn-show-pl" class="action-btn">Show P/L</button>
+            <button type="button" id="btn-export-pl" class="action-btn" style="background-color: #0284c7;">📥 Excel</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- તારીખ મુજબ P/L ટેબલ અને Total Summary -->
+      <div class="card" style="margin-top: 20px;">
+        <h3 id="report-range-title" style="margin-top: 0;">Date-Wise Net Profit / Loss</h3>
+
+        <div class="table-wrapper">
+          <table id="report-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Total Trades</th>
+                <th>Net Profit / Loss</th>
+              </tr>
+            </thead>
+            <tbody id="pl-report-tbody">
+              <tr><td colspan="3">તારીખ પસંદ કરીને 'Show P/L' દબાવો.</td></tr>
+            </tbody>
+            <tfoot id="pl-report-tfoot" style="display: none;">
+              <tr style="background-color: #f1f5f9; font-weight: bold; font-size: 15px; border-top: 2px solid #94a3b8;">
+                <td>TOTAL SUMMARY</td>
+                <td id="summary-total-trades">0</td>
+                <td id="summary-total-pl">₹0.00</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="pl_report.js"></script>
+  </body>
+</html>
