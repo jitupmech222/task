@@ -3,32 +3,33 @@ const supabaseUrl = "https://bgfwwhivzgzzchhkgkqr.supabase.co";
 const supabaseKey = "sb_publishable_8YLsit4SKIqzKowkIBLitw_QN3D4RxK";
 const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-// SAHI બ્રોકરેજ અને ટેક્સ ગણતરી (PDF B-1 થી B-5 મુજબ 100% ચોક્કસ)
+// SAHI બ્રોકરેજ અને ટેક્સ ગણતરી
 function calculateSahiCharges(segment, side, price, qty) {
+  if (!segment || !side) return 0;
   const turnover = price * qty;
   if (isNaN(turnover) || turnover <= 0) return 0;
 
   let brokerage = 0;
   let stt = 0;
   let exch = 0;
-  let sebi = turnover * 0.000001; // 0.0001%
+  let sebi = turnover * 0.000001;
   let stamp = 0;
 
   if (segment === "INTRADAY") {
-    brokerage = Math.min(10, turnover * 0.0005); // 0.05% or max ₹10
-    stt = side === "SELL" ? turnover * 0.00025 : 0; // 0.025% on Sell
-    exch = turnover * 0.0000307; // 0.00307%
-    stamp = side === "BUY" ? Math.ceil(turnover * 0.00003) : 0; // 0.003% rounded up on Buy
+    brokerage = Math.min(10, turnover * 0.0005);
+    stt = side === "SELL" ? turnover * 0.00025 : 0;
+    exch = turnover * 0.0000307;
+    stamp = side === "BUY" ? Math.ceil(turnover * 0.00003) : 0;
   } else if (segment === "OPTIONS") {
-    brokerage = 10; // Flat ₹10
-    stt = side === "SELL" ? turnover * 0.0015 : 0; // 0.15% on Sell
-    exch = turnover * 0.0003553; // 0.03553%
-    stamp = side === "BUY" ? Math.ceil(turnover * 0.00003) : 0; // 0.003% rounded up on Buy
+    brokerage = 10;
+    stt = side === "SELL" ? turnover * 0.0015 : 0;
+    exch = turnover * 0.0003553;
+    stamp = side === "BUY" ? Math.ceil(turnover * 0.00003) : 0;
   } else if (segment === "MCX_OPTIONS") {
-    brokerage = 10; // Flat ₹10
-    stt = side === "SELL" ? turnover * 0.0005 : 0; // 0.05% CTT on Sell
-    exch = turnover * 0.000418; // 0.0418%
-    stamp = side === "BUY" ? Math.ceil(turnover * 0.00003) : 0; // 0.003% rounded up on Buy
+    brokerage = 10;
+    stt = side === "SELL" ? turnover * 0.0005 : 0;
+    exch = turnover * 0.000418;
+    stamp = side === "BUY" ? Math.ceil(turnover * 0.00003) : 0;
   }
 
   const gst = (brokerage + exch + sebi) * 0.18;
@@ -48,7 +49,6 @@ const firstPriceInput = document.getElementById("first_price");
 const firstQtyInput = document.getElementById("first_qty");
 const firstChargesInput = document.getElementById("first_charges");
 
-// First Entry ના ચાર્જ ઓટો ગણવાનું ફંક્શન
 function updateFirstAutoCharges() {
   const seg = tradeSegmentSelect.value;
   const side = tradeSideSelect.value;
@@ -67,28 +67,41 @@ tradeSideSelect.addEventListener("change", () => {
     document.getElementById("lbl_first_price").innerText = "Buy Price:";
     document.getElementById("lbl_first_qty").innerText = "Buy Qty:";
     document.getElementById("lbl_first_charges").innerText = "Buy Charges (Auto Calculated):";
-  } else {
+  } else if (side === "SELL") {
     document.getElementById("lbl_first_price").innerText = "Sell Price:";
     document.getElementById("lbl_first_qty").innerText = "Sell Qty:";
     document.getElementById("lbl_first_charges").innerText = "Sell Charges (Auto Calculated):";
+  } else {
+    document.getElementById("lbl_first_price").innerText = "Price:";
+    document.getElementById("lbl_first_qty").innerText = "Qty:";
+    document.getElementById("lbl_first_charges").innerText = "Charges (Auto Calculated):";
   }
   updateFirstAutoCharges();
 });
 
-// 1) New બટન પર ક્લિક કરતા
 btnNew.addEventListener("click", () => {
   newTradeForm.style.display = "block";
   inProgressSection.style.display = "none";
 });
 
-// પ્રથમ એન્ટ્રી સેવ કરો
 document.getElementById("save-new-btn").addEventListener("click", async () => {
+  const seg = tradeSegmentSelect.value;
   const side = tradeSideSelect.value;
   const date = document.getElementById("first_date").value;
   const stock_name = document.getElementById("stock_name").value.trim().toUpperCase();
   const price = parseFloat(firstPriceInput.value);
   const qty = parseFloat(firstQtyInput.value);
   const charges = parseFloat(firstChargesInput.value) || 0;
+
+  if (!seg) {
+    alert("કૃપા કરીને પહેલા Segment પસંદ કરો!");
+    return;
+  }
+
+  if (!side) {
+    alert("કૃપા કરીને Trade Type (BUY અથવા SELL) પસંદ કરો!");
+    return;
+  }
 
   if (!date || !stock_name || isNaN(price) || isNaN(qty)) {
     alert("કૃપા કરીને બધી જરૂરી વિગતો ભરો!");
@@ -116,6 +129,8 @@ document.getElementById("save-new-btn").addEventListener("click", async () => {
     alert("ડેટા સેવ કરવામાં એરર આવી: " + error.message);
   } else {
     alert(`નવો ${side} ટ્રેડ (Charges: ₹${charges}) સફળતાપૂર્વક સેવ થઈ ગયો!`);
+    tradeSegmentSelect.value = "";
+    tradeSideSelect.value = "";
     document.getElementById("stock_name").value = "";
     firstPriceInput.value = "";
     firstQtyInput.value = "";
@@ -123,7 +138,6 @@ document.getElementById("save-new-btn").addEventListener("click", async () => {
   }
 });
 
-// Second Entry ના ચાર્જ ઓટો ગણવાનું ફંક્શન
 const completeSegmentSelect = document.getElementById("complete_segment");
 const secondPriceInput = document.getElementById("second_price");
 const secondQtyInput = document.getElementById("second_qty");
@@ -141,7 +155,6 @@ completeSegmentSelect.addEventListener("change", updateSecondAutoCharges);
 secondPriceInput.addEventListener("input", updateSecondAutoCharges);
 secondQtyInput.addEventListener("input", updateSecondAutoCharges);
 
-// 2) In Progress બટન પર ક્લિક કરતા
 btnInProgress.addEventListener("click", async () => {
   newTradeForm.style.display = "none";
   inProgressSection.style.display = "block";
@@ -185,6 +198,7 @@ btnInProgress.addEventListener("click", async () => {
       document.getElementById("lbl_second_qty").innerText = `${missingSide} Qty:`;
       document.getElementById("lbl_second_charges").innerText = `${missingSide} Charges (Auto Calculated):`;
 
+      completeSegmentSelect.value = "";
       document.getElementById("selected_sr_no").value = item.sr_no;
       document.getElementById("missing_side").value = missingSide;
       document.getElementById("hidden_existing_amount").value = isBuyDone ? item.buy_amount : item.sell_amount;
@@ -198,8 +212,8 @@ btnInProgress.addEventListener("click", async () => {
   });
 });
 
-// બીજી બાજુ અપડેટ કરીને ટ્રેડ પૂર્ણ કરો
 document.getElementById("update-complete-btn").addEventListener("click", async () => {
+  const seg = completeSegmentSelect.value;
   const sr_no = document.getElementById("selected_sr_no").value;
   const missingSide = document.getElementById("missing_side").value;
   const existingAmount = parseFloat(document.getElementById("hidden_existing_amount").value);
@@ -208,6 +222,11 @@ document.getElementById("update-complete-btn").addEventListener("click", async (
   const secondPrice = parseFloat(secondPriceInput.value);
   const secondQty = parseFloat(secondQtyInput.value);
   const secondCharges = parseFloat(secondChargesInput.value) || 0;
+
+  if (!seg) {
+    alert("કૃપા કરીને પહેલા Segment પસંદ કરો!");
+    return;
+  }
 
   if (isNaN(secondPrice) || isNaN(secondQty)) {
     alert("કૃપા કરીને Price અને Qty દાખલ કરો!");
