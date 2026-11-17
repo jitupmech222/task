@@ -37,8 +37,8 @@ function calculateSahiCharges(segment, side, price, qty) {
   return Number(total.toFixed(2));
 }
 
-let lastSettledSrNo = null;
-let currentClosingBalance = 0;
+let allTaskNseRows = [];
+let lastActuallyClosing = 0;
 let amountForTask = 0;
 let nextTaskNumber = 1;
 let activeTasksList = [];
@@ -54,6 +54,7 @@ function calculateTaskLevel(amount) {
   return Math.floor(Math.log2(amount / 10)) + 1;
 }
 
+// 1. પેજ લોડ થતા શરતો ચેક કરો અને SUM(for_task) ગણો
 async function initializePage() {
   try {
     loadingMsg.style.display = "block";
@@ -88,12 +89,17 @@ async function initializePage() {
       return;
     }
 
+    allTaskNseRows = allTrades;
     const latestSettledRow = allTrades[0];
-    lastSettledSrNo = latestSettledRow.sr_no;
-    currentClosingBalance = parseFloat(latestSettledRow.closing_balance) || 0;
-    amountForTask = currentClosingBalance - 10000;
+    lastActuallyClosing =
+      latestSettledRow.actually_closing !== null && latestSettledRow.actually_closing !== undefined
+        ? parseFloat(latestSettledRow.actually_closing)
+        : parseFloat(latestSettledRow.closing_balance) || 0;
 
-    document.getElementById("display-closing-bal").innerText = `₹${currentClosingBalance.toFixed(2)}`;
+    // task_nse ના બધા for_task કોલમનો સરવાળો (SUM) કરો
+    amountForTask = allTrades.reduce((sum, r) => sum + (parseFloat(r.for_task) || 0), 0);
+
+    document.getElementById("display-closing-bal").innerText = `₹${lastActuallyClosing.toFixed(2)}`;
     document.getElementById("display-task-available").innerText = `₹${amountForTask.toFixed(2)}`;
 
     taskGeneratorArea.style.display = "block";
@@ -192,6 +198,7 @@ document.getElementById("show-create-form-btn").addEventListener("click", () => 
   document.getElementById("auto_task_number").value = nextTaskNumber;
 });
 
+// નવો ટાસ્ક સેવ કરો અને task_nse ના for_task બેલેન્સમાંથી તે રકમ બાદ (minus) કરો
 document.getElementById("save-task-btn").addEventListener("click", async () => {
   const taskAmount = parseFloat(document.getElementById("input_task_amount").value);
 
@@ -201,12 +208,13 @@ document.getElementById("save-task-btn").addEventListener("click", async () => {
   }
 
   if (taskAmount > amountForTask) {
-    alert(`તમારી પાસે ટાસ્ક માટે ફક્ત ₹${amountForTask.toFixed(2)} ઉપલબ્ધ છે!`);
+    alert(`તમારી પાસે for_task માં ફક્ત ₹${amountForTask.toFixed(2)} ઉપલબ્ધ છે!`);
     return;
   }
 
   const initialLevel = calculateTaskLevel(taskAmount);
 
+  // 1. nse_task માં નવો ટાસ્ક ઉમેરો
   const { error: insertErr } = await supabaseClient
     .from("nse_task")
     .insert([
@@ -223,21 +231,37 @@ document.getElementById("save-task-btn").addEventListener("click", async () => {
     return;
   }
 
-  const updatedClosingBalance = currentClosingBalance - taskAmount;
+  // 2. task_nse ટેબલના for_task કોલમમાંથી ક્રમશઃ taskAmount બાદ (minus) કરો
+  let remainingToDeduct = taskAmount;
+  const rowsWithTaskBalance = [...allTaskNseRows]
+    .filter((r) => (parseFloat(r.for_task) || 0) > 0)
+    .sort((a, b) => Number(a.sr_no) - Number(b.sr_no));
 
-  const { error: updateErr } = await supabaseClient
-    .from("task_nse")
-    .update({ closing_balance: updatedClosingBalance })
-    .eq("sr_no", lastSettledSrNo);
+  for (const row of rowsWithTaskBalance) {
+    if (remainingToDeduct <= 0) break;
 
-  if (updateErr) {
-    alert("Closing Balance અપડેટ કરવામાં એરર આવી: " + updateErr.message);
-  } else {
-    alert(`Task ${nextTaskNumber} (Level ${initialLevel}) બની ગયો!\nનવું Closing Balance: ₹${updatedClosingBalance.toFixed(2)}`);
-    document.getElementById("input_task_amount").value = "";
-    document.getElementById("create-task-form").style.display = "none";
-    initializePage();
+    const currentRowForTask = parseFloat(row.for_task) || 0;
+    const deduct = Math.min(currentRowForTask, remainingToDeduct);
+    const updatedRowForTask = Number((currentRowForTask - deduct).toFixed(2));
+
+    const { error: deductErr } = await supabaseClient
+      .from("task_nse")
+      .update({ for_task: updatedRowForTask })
+      .eq("sr_no", row.sr_no);
+
+    if (deductErr) {
+      alert("for_task અપડેટ કરવામાં એરર આવી: " + deductErr.message);
+      return;
+    }
+
+    remainingToDeduct = Number((remainingToDeduct - deduct).toFixed(2));
   }
+
+  const remainingForTask = amountForTask - taskAmount;
+  alert(`Task ${nextTaskNumber} (Level ${initialLevel}) બની ગયો!\nબાકી રહેલ Amount for Task: ₹${remainingForTask.toFixed(2)}`);
+  document.getElementById("input_task_amount").value = "";
+  document.getElementById("create-task-form").style.display = "none";
+  initializePage();
 });
 
 // ==========================================
