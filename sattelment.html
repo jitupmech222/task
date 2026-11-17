@@ -7,32 +7,77 @@
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <div class="container" style="max-width: 900px;">
+    <div class="container" style="max-width: 800px;">
       <header class="topbar" style="display: flex; justify-content: space-between; align-items: center;">
-        <h1>Sattelment Balance</h1>
+        <h1>NSE Sattelment</h1>
         <button onclick="window.location.href='index.html'" class="nav-btn">← Dashboard</button>
       </header>
 
+      <!-- 1. Pending Settlement Section -->
       <div class="card">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-          <h3 style="margin: 0;">Pending Sattelment Records</h3>
-          <span id="last-sattelment-info" style="font-size: 13px; font-weight: bold; color: #2563eb;"></span>
+          <h2 style="margin: 0;">Pending Sattelment Trades</h2>
+          <button type="button" onclick="loadPendingSettlements()" class="mini-btn">🔄 Refresh</button>
         </div>
 
+        <div id="pending-settlement-list">લોડ થઈ રહ્યું છે...</div>
+
+        <!-- Settlement Details & Input Form -->
+        <div id="settlement-form-box" class="form-box" style="display: none; margin-top: 20px; border-top: 2px solid #cbd5e1; padding-top: 15px;">
+          <h3 id="settle-trade-title" style="color: #1d4ed8; margin-top: 0;">Sattelment Details</h3>
+          <input type="hidden" id="settle_sr_no" />
+          <input type="hidden" id="settle_no" />
+
+          <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px;">
+            <div style="flex: 1; min-width: 130px; background: #f8fafc; padding: 10px; border-radius: 6px; border: 1px solid #cbd5e1;">
+              <div style="font-size: 12px; color: #64748b;">Opening Balance</div>
+              <div id="disp_opening_bal" style="font-size: 17px; font-weight: bold; color: #1e293b;">₹0.00</div>
+            </div>
+            <div style="flex: 1; min-width: 130px; background: #f8fafc; padding: 10px; border-radius: 6px; border: 1px solid #cbd5e1;">
+              <div style="font-size: 12px; color: #64748b;">Net Profit / Loss</div>
+              <div id="disp_net_pl" style="font-size: 17px; font-weight: bold;">₹0.00</div>
+            </div>
+            <div style="flex: 1; min-width: 130px; background: #eff6ff; padding: 10px; border-radius: 6px; border: 1px solid #93c5fd;">
+              <div style="font-size: 12px; color: #1d4ed8;">Closing Balance</div>
+              <div id="disp_closing_bal" style="font-size: 17px; font-weight: bold; color: #1d4ed8;">₹0.00</div>
+            </div>
+          </div>
+
+          <label>For Saving (`for_saving`):</label>
+          <input type="number" step="0.01" id="input_for_saving" placeholder="0" value="0" required />
+
+          <label>For Task (`for_task`):</label>
+          <input type="number" step="0.01" id="input_for_task" placeholder="0" value="0" required />
+
+          <div style="background: #f0fdf4; padding: 12px; border-radius: 8px; border: 1px solid #86efac; margin-top: 15px;">
+            <div style="font-size: 13px; color: #166534;">Actually Closing Balance (Closing - Saving - Task):</div>
+            <div id="disp_actually_closing" style="font-size: 20px; font-weight: bold; color: #15803d; margin-top: 4px;">₹0.00</div>
+          </div>
+
+          <button type="button" id="confirm-settlement-btn" class="submit-btn">Save Sattelment</button>
+        </div>
+      </div>
+
+      <!-- 2. Completed Settlements History -->
+      <div class="card" style="margin-top: 20px;">
+        <h3 style="margin-top: 0;">Completed Sattelments</h3>
         <div class="table-wrapper">
           <table id="report-table">
             <thead>
               <tr>
-                <th>Sr No</th>
+                <th>Settle No</th>
                 <th>Date</th>
-                <th>Stock Name</th>
-                <th>Opening Balance</th>
-                <th>Closing Balance</th>
-                <th>Action</th>
+                <th>Stock</th>
+                <th>Opening</th>
+                <th>Net P/L</th>
+                <th>Closing</th>
+                <th>Saving</th>
+                <th>For Task</th>
+                <th>Actually Closing</th>
               </tr>
             </thead>
-            <tbody id="sattelment-tbody">
-              <tr><td colspan="6">ડેટા લોડ થઈ રહ્યો છે...</td></tr>
+            <tbody id="completed-settlement-tbody">
+              <tr><td colspan="9">લોડ થઈ રહ્યું છે...</td></tr>
             </tbody>
           </table>
         </div>
