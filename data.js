@@ -3,376 +3,356 @@ const supabaseUrl = "https://bgfwwhivzgzzchhkgkqr.supabase.co";
 const supabaseKey = "sb_publishable_8YLsit4SKIqzKowkIBLitw_QN3D4RxK";
 const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-const fullColumns = [
-  "sr_no", "date", "stock_name", "buy_price", "buy_qty", "buy_charges",
-  "sell_price", "sell_qty", "sell_charges", "buy_amount", "sell_amount",
-  "total_trn_amount", "total_charges", "gross_profit_loss", "net_profit_loss",
-  "opening_balance", "closing_balance", "for_saving", "for_task"
-];
+// ત્રણેય ટેબલનું સ્ટ્રક્ચર (Primary Key અને Columns)
+const TABLE_CONFIG = {
+  task_nse: {
+    pk: "sr_no",
+    orderCol: "sr_no",
+    columns: [
+      "sr_no",
+      "date",
+      "stock_name",
+      "buy_price",
+      "buy_qty",
+      "buy_charges",
+      "buy_amount",
+      "sell_price",
+      "sell_qty",
+      "sell_charges",
+      "sell_amount",
+      "total_trn_amount",
+      "total_charges",
+      "gross_profit_loss",
+      "net_profit_loss",
+      "sattelment",
+      "opening_balance",
+      "closing_balance",
+      "for_saving",
+      "for_task",
+      "actually_closing"
+    ]
+  },
+  nse_task: {
+    pk: "task_number",
+    orderCol: "task_number",
+    columns: ["task_number", "task_amount", "task_level", "status"]
+  },
+  nse_task_trades: {
+    pk: "sr_no",
+    orderCol: "sr_no",
+    columns: [
+      "sr_no",
+      "task_number",
+      "date",
+      "stock_name",
+      "buy_price",
+      "buy_qty",
+      "buy_charges",
+      "buy_amount",
+      "sell_price",
+      "sell_qty",
+      "sell_charges",
+      "sell_amount",
+      "total_trn_amount",
+      "total_charges",
+      "gross_profit_loss",
+      "net_profit_loss"
+    ]
+  }
+};
 
-const customColumns = [
-  "sr_no", "date", "stock_name", "buy_price", "sell_price",
-  "net_profit_loss", "opening_balance", "closing_balance"
-];
-
-let rawData = [];
-let filteredData = [];
-let currentColumns = fullColumns;
-let currentViewName = "Full_Data";
-let activeFilters = {}; // { columnName: Set(['val1', 'val2']) }
+let currentTable = "task_nse";
+let rawRows = [];
+let filteredRows = [];
+let activeFilters = {}; // { colName: Set of allowed string values }
 let currentFilterCol = null;
-let editingSrNo = null;
+let editingPkValue = null;
 
 const thead = document.getElementById("data-thead");
 const tbody = document.getElementById("data-tbody");
-const viewTitle = document.getElementById("view-title");
+const filterPopup = document.getElementById("column-filter-popup");
 
-// વેલ્યુને ટેક્સ્ટમાં ફેરવવા માટે (ખાલી હોય તો '(Blank)')
-function getDisplayVal(val) {
-  return val !== null && val !== undefined && val !== "" ? String(val) : "(Blank)";
-}
+// 1. ટેબલ બટન સ્વિચિંગ (task_nse / nse_task / nse_task_trades)
+document.querySelectorAll(".tab-btn").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".tab-btn").forEach((b) => b.classList.remove("active"));
+    btn.classList.add("active");
+    currentTable = btn.dataset.table;
+    activeFilters = {};
+    filterPopup.style.display = "none";
+    loadTableData();
+  });
+});
 
-// Supabase માંથી ડેટા લોડ કરો
-async function loadDatabase() {
-  tbody.innerHTML = "<tr><td>ડેટા લોડ થઈ રહ્યો છે...</td></tr>";
+// 2. પસંદ કરેલા ટેબલનો ડેટા Supabase માંથી લાવો
+async function loadTableData() {
+  const cfg = TABLE_CONFIG[currentTable];
+  document.getElementById("active-table-title").innerText = `Table: ${currentTable}`;
+  thead.innerHTML = "";
+  tbody.innerHTML = '<tr><td>ડેટા લોડ થઈ રહ્યો છે...</td></tr>';
+
   const { data, error } = await supabaseClient
-    .from("task_nse")
+    .from(currentTable)
     .select("*")
-    .order("sr_no", { ascending: false });
+    .order(cfg.orderCol, { ascending: false });
 
   if (error) {
-    tbody.innerHTML = `<tr><td style="color:red;">એરર આવી: ${error.message}</td></tr>`;
+    tbody.innerHTML = `<tr><td style="color:red;">ડેટાબેઝ એરર: ${error.message}</td></tr>`;
     return;
   }
 
-  rawData = data;
+  rawRows = data || [];
   applyFiltersAndRender();
 }
 
-// હેડર અને દરેક કોલમ પર 🔽 ફિલ્ટર બટન બનાવો
-function buildHeader() {
-  thead.innerHTML = "";
-  const tr = document.createElement("tr");
+// 3. ફિલ્ટર લાગુ કરીને ટેબલ બતાવો
+function applyFiltersAndRender() {
+  const cfg = TABLE_CONFIG[currentTable];
 
-  currentColumns.forEach((col) => {
-    const th = document.createElement("th");
-    th.className = "excel-th";
-
-    const wrapper = document.createElement("div");
-    wrapper.className = "th-flex";
-
-    const titleSpan = document.createElement("span");
-    titleSpan.innerText = col.toUpperCase().replace(/_/g, " ");
-
-    const filterBtn = document.createElement("button");
-    filterBtn.type = "button";
-    const isFiltered = activeFilters[col] !== undefined;
-    filterBtn.className = isFiltered ? "excel-filter-btn filtered" : "excel-filter-btn";
-    filterBtn.innerHTML = "▼";
-    filterBtn.title = `Filter ${col}`;
-
-    filterBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      openColumnFilter(col);
-    });
-
-    wrapper.appendChild(titleSpan);
-    wrapper.appendChild(filterBtn);
-    th.appendChild(wrapper);
-    tr.appendChild(th);
-  });
-
-  const thAction = document.createElement("th");
-  thAction.className = "excel-th";
-  thAction.innerText = "ACTION";
-  tr.appendChild(thAction);
-
-  thead.appendChild(tr);
-}
-
-// ફિલ્ટર મુજબ ડેટા રો બતાવો
-function renderRows() {
-  filteredData = rawData.filter((row) => {
+  filteredRows = rawRows.filter((row) => {
     return Object.keys(activeFilters).every((col) => {
       const allowedSet = activeFilters[col];
       if (!allowedSet) return true;
-      return allowedSet.has(getDisplayVal(row[col]));
+      const valStr = row[col] === null || row[col] === undefined ? "(Blank)" : String(row[col]);
+      return allowedSet.has(valStr);
     });
   });
 
-  document.getElementById("record-count").innerText = filteredData.length;
-  tbody.innerHTML = "";
+  document.getElementById("row-count-badge").innerText = `(${filteredRows.length} / ${rawRows.length} rows)`;
 
-  if (filteredData.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="${currentColumns.length + 1}">કોઈ ડેટા મળ્યો નથી.</td></tr>`;
+  // Header બનાવો (દરેક કોલમ પર Filter બટન સાથે)
+  const trHead = document.createElement("tr");
+  const thAction = document.createElement("th");
+  thAction.innerText = "Actions";
+  trHead.appendChild(thAction);
+
+  cfg.columns.forEach((col) => {
+    const th = document.createElement("th");
+    th.style.whiteSpace = "nowrap";
+    const isFiltered = Boolean(activeFilters[col]);
+    th.innerHTML = `${col} <button type="button" class="th-filter-btn ${isFiltered ? "filtered" : ""}" data-col="${col}">▼</button>`;
+    trHead.appendChild(th);
+  });
+
+  thead.innerHTML = "";
+  thead.appendChild(trHead);
+
+  // Filter બટન ક્લિક ઇવેન્ટ
+  thead.querySelectorAll(".th-filter-btn").forEach((fBtn) => {
+    fBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      openColumnFilter(fBtn.dataset.col, fBtn);
+    });
+  });
+
+  // Body રો બનાવો
+  if (filteredRows.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="${cfg.columns.length + 1}">કોઈ ડેટા મળ્યો નથી.</td></tr>`;
     return;
   }
 
-  filteredData.forEach((row) => {
+  tbody.innerHTML = "";
+  filteredRows.forEach((row) => {
     const tr = document.createElement("tr");
 
-    currentColumns.forEach((col) => {
+    // Edit અને Delete બટન
+    const tdAct = document.createElement("td");
+    tdAct.style.whiteSpace = "nowrap";
+    tdAct.innerHTML = `
+      <button type="button" class="mini-btn edit-row-btn" style="padding: 4px 8px; font-size: 12px; background:#2563eb;">✏️</button>
+      <button type="button" class="mini-btn del-row-btn" style="padding: 4px 8px; font-size: 12px; background:#dc2626; margin-left:4px;">🗑️</button>
+    `;
+
+    tdAct.querySelector(".edit-row-btn").addEventListener("click", () => openEditModal(row));
+    tdAct.querySelector(".del-row-btn").addEventListener("click", () => deleteRow(row));
+    tr.appendChild(tdAct);
+
+    cfg.columns.forEach((col) => {
       const td = document.createElement("td");
-      td.innerText = row[col] !== null && row[col] !== undefined ? row[col] : "-";
+      td.style.whiteSpace = "nowrap";
+      const val = row[col];
+      td.innerText = val === null || val === undefined ? "" : val;
       tr.appendChild(td);
     });
-
-    const tdAction = document.createElement("td");
-    const editBtn = document.createElement("button");
-    editBtn.type = "button";
-    editBtn.className = "mini-btn";
-    editBtn.innerText = "✏️ Edit";
-    editBtn.addEventListener("click", () => openEditModal(row));
-    tdAction.appendChild(editBtn);
-    tr.appendChild(tdAction);
 
     tbody.appendChild(tr);
   });
 }
 
-function applyFiltersAndRender() {
-  buildHeader();
-  renderRows();
-}
-
-// સ્ક્રીનશોટ મુજબનું Excel Filter Popup ખોલો
-const filterOverlay = document.getElementById("filter-dropdown-overlay");
-const filterSearchInput = document.getElementById("filter-search-input");
-const filterSelectAll = document.getElementById("filter-select-all");
-const filterOptionsList = document.getElementById("filter-options-list");
-
-function openColumnFilter(col) {
+// 4. Excel-style Column Filter Popup
+function openColumnFilter(col, btnEl) {
   currentFilterCol = col;
-  const colTitle = col.toUpperCase().replace(/_/g, " ");
-  filterSearchInput.placeholder = `Search in ${colTitle}...`;
-  filterSearchInput.value = "";
+  document.getElementById("filter-col-title").innerText = `Filter: ${col}`;
+  document.getElementById("filter-search-input").value = "";
 
-  // આ કોલમની બધી યુનિક વેલ્યુ અને તેની ગણતરી (Count) શોધો
-  const counts = {};
-  rawData.forEach((row) => {
-    const val = getDisplayVal(row[col]);
-    counts[val] = (counts[val] || 0) + 1;
-  });
+  const uniqueVals = Array.from(
+    new Set(rawRows.map((r) => (r[col] === null || r[col] === undefined ? "(Blank)" : String(r[col]))))
+  ).sort();
 
-  const uniqueVals = Object.keys(counts).sort();
+  const container = document.getElementById("filter-values-container");
+  container.innerHTML = "";
+
   const existingSet = activeFilters[col];
 
-  filterOptionsList.innerHTML = "";
-  uniqueVals.forEach((val) => {
-    const label = document.createElement("label");
-    label.className = "filter-item-row filter-value-item";
-    label.dataset.val = val.toLowerCase();
-
-    const cb = document.createElement("input");
-    cb.type = "checkbox";
-    cb.value = val;
-    cb.checked = existingSet ? existingSet.has(val) : true;
-
-    cb.addEventListener("change", updateSelectAllState);
-
-    const textSpan = document.createElement("span");
-    textSpan.innerHTML = `${val} <span style="color:#64748b;">(${counts[val]})</span>`;
-
-    label.appendChild(cb);
-    label.appendChild(textSpan);
-    filterOptionsList.appendChild(label);
+  uniqueVals.forEach((v) => {
+    const checked = !existingSet || existingSet.has(v) ? "checked" : "";
+    const lbl = document.createElement("label");
+    lbl.innerHTML = `<input type="checkbox" value="${v.replace(/"/g, "&quot;")}" ${checked} /> <span>${v}</span>`;
+    container.appendChild(lbl);
   });
 
-  updateSelectAllState();
-  filterOverlay.style.display = "flex";
+  const rect = btnEl.getBoundingClientRect();
+  filterPopup.style.display = "flex";
+  filterPopup.style.top = `${Math.min(window.innerHeight - 330, rect.bottom + 5)}px`;
+  filterPopup.style.left = `${Math.min(window.innerWidth - 255, Math.max(10, rect.left - 100))}px`;
 }
 
-function updateSelectAllState() {
-  const visibleCheckboxes = Array.from(
-    filterOptionsList.querySelectorAll(".filter-value-item:not([style*='display: none']) input[type='checkbox']")
-  );
-  filterSelectAll.checked = visibleCheckboxes.length > 0 && visibleCheckboxes.every((cb) => cb.checked);
-}
-
-// Search બોક્સમાં લખતા લિસ્ટ ફિલ્ટર કરો
-filterSearchInput.addEventListener("input", () => {
-  const term = filterSearchInput.value.toLowerCase().trim();
-  const items = filterOptionsList.querySelectorAll(".filter-value-item");
-  items.forEach((item) => {
-    item.style.display = item.dataset.val.includes(term) ? "flex" : "none";
+document.getElementById("filter-search-input").addEventListener("input", (e) => {
+  const q = e.target.value.toLowerCase();
+  document.querySelectorAll("#filter-values-container label").forEach((lbl) => {
+    lbl.style.display = lbl.innerText.toLowerCase().includes(q) ? "flex" : "none";
   });
-  updateSelectAllState();
 });
 
-// (Select All) ચેકબોક્સ
-filterSelectAll.addEventListener("change", () => {
-  const isChecked = filterSelectAll.checked;
-  const visibleCheckboxes = filterOptionsList.querySelectorAll(
-    ".filter-value-item:not([style*='display: none']) input[type='checkbox']"
-  );
-  visibleCheckboxes.forEach((cb) => (cb.checked = isChecked));
+document.getElementById("btn-select-all-filter").addEventListener("click", () => {
+  document.querySelectorAll("#filter-values-container input[type='checkbox']").forEach((cb) => {
+    if (cb.parentElement.style.display !== "none") cb.checked = true;
+  });
 });
 
-// OK બટન દબાવતા ફિલ્ટર લાગુ કરો
-document.getElementById("filter-ok-btn").addEventListener("click", () => {
-  const allCheckboxes = Array.from(filterOptionsList.querySelectorAll("input[type='checkbox']"));
-  const checkedVals = allCheckboxes.filter((cb) => cb.checked).map((cb) => cb.value);
+document.getElementById("btn-deselect-all-filter").addEventListener("click", () => {
+  document.querySelectorAll("#filter-values-container input[type='checkbox']").forEach((cb) => {
+    if (cb.parentElement.style.display !== "none") cb.checked = false;
+  });
+});
 
-  if (checkedVals.length === allCheckboxes.length) {
-    delete activeFilters[currentFilterCol]; // બધા સિલેક્ટ હોય તો ફિલ્ટર હટાવો
+document.getElementById("btn-apply-filter").addEventListener("click", () => {
+  const allBoxes = Array.from(document.querySelectorAll("#filter-values-container input[type='checkbox']"));
+  const checkedBoxes = allBoxes.filter((cb) => cb.checked);
+
+  if (checkedBoxes.length === allBoxes.length) {
+    delete activeFilters[currentFilterCol];
   } else {
-    activeFilters[currentFilterCol] = new Set(checkedVals);
+    activeFilters[currentFilterCol] = new Set(checkedBoxes.map((cb) => cb.value));
   }
 
-  filterOverlay.style.display = "none";
+  filterPopup.style.display = "none";
   applyFiltersAndRender();
 });
 
-// Clear બટન (ફક્ત આ કોલમનું ફિલ્ટર હટાવવા)
-document.getElementById("filter-clear-btn").addEventListener("click", () => {
-  delete activeFilters[currentFilterCol];
-  filterOverlay.style.display = "none";
-  applyFiltersAndRender();
+document.getElementById("btn-cancel-filter").addEventListener("click", () => {
+  filterPopup.style.display = "none";
 });
 
-// બહાર ક્લિક કરવાથી ફિલ્ટર બોક્સ બંધ થાય
-filterOverlay.addEventListener("click", (e) => {
-  if (e.target === filterOverlay) {
-    filterOverlay.style.display = "none";
-  }
-});
-
-// ઉપરનું 'Clear Filters' બટન (બધી કોલમના ફિલ્ટર એકસાથે સાફ કરવા)
-document.getElementById("btn-clear-all-filters").addEventListener("click", () => {
+document.getElementById("btn-clear-filters").addEventListener("click", () => {
   activeFilters = {};
+  filterPopup.style.display = "none";
   applyFiltersAndRender();
 });
 
-// Full Data અને Custom Data બટન
-document.getElementById("btn-full-data").addEventListener("click", () => {
-  currentColumns = fullColumns;
-  currentViewName = "Full_Data";
-  viewTitle.innerText = "Full Data View (All Columns)";
-  applyFiltersAndRender();
-});
-
-document.getElementById("btn-custom-data").addEventListener("click", () => {
-  currentColumns = customColumns;
-  currentViewName = "Custom_Data";
-  viewTitle.innerText = "Custom Data View (Selected Columns)";
-  applyFiltersAndRender();
-});
-
-// Filtered Data ને Excel માં ડાઉનલોડ કરો
-document.getElementById("btn-download-excel").addEventListener("click", () => {
-  if (filteredData.length === 0) {
-    alert("ડાઉનલોડ કરવા માટે ટેબલમાં કોઈ ડેટા નથી!");
-    return;
-  }
-
-  const exportRows = filteredData.map((row) => {
-    const obj = {};
-    currentColumns.forEach((col) => {
-      obj[col] = row[col] !== null ? row[col] : "";
-    });
-    return obj;
-  });
-
-  const worksheet = XLSX.utils.json_to_sheet(exportRows);
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, currentViewName);
-
-  const fileName = `NSE_${currentViewName}_${new Date().toISOString().slice(0, 10)}.xlsx`;
-  XLSX.writeFile(workbook, fileName);
-});
-
-// Edit અને Delete Modal લોજિક
-const editModal = document.getElementById("edit-modal");
-const editFieldsContainer = document.getElementById("edit-fields-container");
-
+// 5. Edit Record Modal
 function openEditModal(row) {
-  editingSrNo = row.sr_no;
-  document.getElementById("modal-title").innerText = `Edit Record (Sr No: ${row.sr_no})`;
-  editFieldsContainer.innerHTML = "";
+  const cfg = TABLE_CONFIG[currentTable];
+  editingPkValue = row[cfg.pk];
 
-  fullColumns.forEach((col) => {
-    if (col === "sr_no") return;
+  document.getElementById("edit-modal-title").innerText = `Edit ${currentTable} (${cfg.pk}: ${editingPkValue})`;
+  const container = document.getElementById("edit-fields-container");
+  container.innerHTML = "";
 
-    const label = document.createElement("label");
-    label.innerText = col.toUpperCase().replace(/_/g, " ") + ":";
-    label.style.display = "block";
-    label.style.marginTop = "10px";
-    label.style.fontWeight = "600";
-    label.style.fontSize = "13px";
+  cfg.columns.forEach((col) => {
+    const isPk = col === cfg.pk;
+    const val = row[col] === null || row[col] === undefined ? "" : row[col];
 
-    const input = document.createElement("input");
-    input.id = `edit_${col}`;
-    input.value = row[col] !== null && row[col] !== undefined ? row[col] : "";
-    input.style.width = "100%";
-    input.style.padding = "8px";
-    input.style.marginTop = "4px";
-    input.style.border = "1px solid #cbd5e1";
-    input.style.borderRadius = "5px";
-    input.style.boxSizing = "border-box";
-
-    if (col === "date") input.type = "date";
-    else if (col === "stock_name") input.type = "text";
-    else {
-      input.type = "number";
-      input.step = "any";
-    }
-
-    editFieldsContainer.appendChild(label);
-    editFieldsContainer.appendChild(input);
+    const div = document.createElement("div");
+    div.style.marginBottom = "10px";
+    div.innerHTML = `
+      <label style="font-size: 13px; font-weight: bold; display:block; margin-bottom:3px;">${col}:</label>
+      <input type="text" data-col="${col}" value="${String(val).replace(/"/g, "&quot;")}" ${isPk ? "readonly style='background:#e2e8f0; width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:5px; box-sizing:border-box;'" : "style='width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:5px; box-sizing:border-box;'"} />
+    `;
+    container.appendChild(div);
   });
 
-  editModal.style.display = "flex";
+  document.getElementById("edit-modal").style.display = "flex";
 }
 
-document.getElementById("close-modal-btn").addEventListener("click", () => {
-  editModal.style.display = "none";
-});
+function closeEditModal() {
+  document.getElementById("edit-modal").style.display = "none";
+  editingPkValue = null;
+}
 
-document.getElementById("save-edit-btn").addEventListener("click", async () => {
-  if (!editingSrNo) return;
+document.getElementById("btn-close-modal").addEventListener("click", closeEditModal);
+document.getElementById("btn-cancel-edit").addEventListener("click", closeEditModal);
 
-  const updatedPayload = {};
-  fullColumns.forEach((col) => {
-    if (col === "sr_no") return;
-    const val = document.getElementById(`edit_${col}`).value.trim();
+document.getElementById("btn-save-edit").addEventListener("click", async () => {
+  const cfg = TABLE_CONFIG[currentTable];
+  const updateObj = {};
 
-    if (val === "") updatedPayload[col] = null;
-    else if (col === "date") updatedPayload[col] = val;
-    else if (col === "stock_name") updatedPayload[col] = val.toUpperCase();
-    else updatedPayload[col] = parseFloat(val);
+  document.querySelectorAll("#edit-fields-container input").forEach((inp) => {
+    const col = inp.dataset.col;
+    if (col === cfg.pk) return;
+    const rawVal = inp.value.trim();
+    updateObj[col] = rawVal === "" ? null : rawVal;
   });
 
   const { error } = await supabaseClient
-    .from("task_nse")
-    .update(updatedPayload)
-    .eq("sr_no", editingSrNo);
+    .from(currentTable)
+    .update(updateObj)
+    .eq(cfg.pk, editingPkValue);
 
   if (error) {
     alert("અપડેટ કરવામાં એરર આવી: " + error.message);
   } else {
-    alert("ડેટા સફળતાપૂર્વક અપડેટ થઈ ગયો!");
-    editModal.style.display = "none";
-    loadDatabase();
+    alert("રેકોર્ડ સફળતાપૂર્વક અપડેટ થઈ ગયો!");
+    closeEditModal();
+    await loadTableData();
   }
 });
 
-document.getElementById("delete-row-btn").addEventListener("click", async () => {
-  if (!editingSrNo) return;
+// 6. Delete Record
+async function deleteRow(row) {
+  const cfg = TABLE_CONFIG[currentTable];
+  const pkVal = row[cfg.pk];
 
-  if (!confirm(`શું તમે ખરેખર Sr No: ${editingSrNo} વાળો રેકોર્ડ ડિલીટ કરવા માંગો છો?`)) return;
+  if (!confirm(`શું તમે ખરેખર ${currentTable} માંથી ${cfg.pk} = ${pkVal} ડિલીટ કરવા માંગો છો?`)) {
+    return;
+  }
 
   const { error } = await supabaseClient
-    .from("task_nse")
+    .from(currentTable)
     .delete()
-    .eq("sr_no", editingSrNo);
+    .eq(cfg.pk, pkVal);
 
   if (error) {
     alert("ડિલીટ કરવામાં એરર આવી: " + error.message);
   } else {
-    alert("રેકોર્ડ સફળતાપૂર્વક ડિલીટ થઈ ગયો!");
-    editModal.style.display = "none";
-    loadDatabase();
+    alert("રેકોર્ડ ડિલીટ થઈ ગયો!");
+    await loadTableData();
   }
+}
+
+// 7. Download Excel (.xlsx)
+document.getElementById("btn-download-excel").addEventListener("click", () => {
+  if (filteredRows.length === 0) {
+    alert("ડાઉનલોડ કરવા માટે કોઈ ડેટા નથી!");
+    return;
+  }
+
+  const cfg = TABLE_CONFIG[currentTable];
+  const exportData = filteredRows.map((r) => {
+    const obj = {};
+    cfg.columns.forEach((col) => {
+      obj[col] = r[col] ?? "";
+    });
+    return obj;
+  });
+
+  const ws = XLSX.utils.json_to_sheet(exportData);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, currentTable);
+  XLSX.writeFile(wb, `${currentTable}_data.xlsx`);
 });
 
-loadDatabase();
+document.getElementById("btn-refresh-data").addEventListener("click", loadTableData);
+
+// પેજ લોડ થતા ડિફોલ્ટ task_nse લોડ કરો
+loadTableData();
