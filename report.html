@@ -81,21 +81,21 @@
           <div class="stat-card" style="background: #eff6ff; border-color: #93c5fd;">
             <div class="stat-title" style="color: #1d4ed8;">2. Treading Amount</div>
             <div class="stat-value" id="val-treading-amt" style="color: #1e40af;">₹0.00</div>
-            <div class="stat-sub">Last Actually Closing Balance (Includes Added Amount)</div>
+            <div class="stat-sub">Last Actually Closing Balance</div>
           </div>
 
-          <!-- 3. Task Amount -->
+          <!-- 3. Task Amount (Remaining) -->
           <div class="stat-card" style="background: #fefce8; border-color: #fde047;">
-            <div class="stat-title" style="color: #854d0e;">3. Task Amount (Available)</div>
+            <div class="stat-title" style="color: #854d0e;">3. Task Amount (Remaining)</div>
             <div class="stat-value" id="val-task-amt" style="color: #a16207;">₹0.00</div>
-            <div class="stat-sub">Remaining for_task Balance</div>
+            <div class="stat-sub">Available in for_task to Create New Task</div>
           </div>
 
           <!-- 4. Active Task Amount -->
           <div class="stat-card" style="background: #f0fdf4; border-color: #86efac;">
             <div class="stat-title" style="color: #166534;">4. Active Task Amount</div>
             <div class="stat-value" id="val-active-task-amt" style="color: #15803d;">₹0.00</div>
-            <div class="stat-sub">Currently Active / In-Progress Tasks</div>
+            <div class="stat-sub">Currently Playing / Active Tasks Balance</div>
           </div>
 
           <!-- 5. Total Saving Amount -->
@@ -125,10 +125,23 @@
             <div class="stat-value" id="val-added-amt" style="color: #6d28d9;">₹0.00</div>
             <div class="stat-sub">Extra Capital Added to Treading</div>
           </div>
+
+          <!-- 9. Lifetime Task Generation History -->
+          <div class="stat-card" style="background: #fff7ed; border-color: #fdba74;">
+            <div class="stat-title" style="color: #9a3412;">9. Total Generated for Task</div>
+            <div class="stat-value" id="val-lifetime-for-task" style="color: #c2410c;">₹0.00</div>
+            <div class="stat-sub">Remaining for_task + Used in All Tasks</div>
+          </div>
+
+          <div class="stat-card" style="background: #f0f9ff; border-color: #7dd3fc;">
+            <div class="stat-title" style="color: #075985;">10. Total Tasks Created</div>
+            <div class="stat-value" id="val-total-tasks-count" style="color: #0369a1;">0 Tasks</div>
+            <div class="stat-sub" id="val-tasks-breakdown">Active: 0 | Closed: 0 | Used: ₹0.00</div>
+          </div>
         </div>
       </div>
 
-      <!-- 2. Capital Actions (Add Treading Amount & Withdraw from Saving Buttons Only) -->
+      <!-- 2. Capital Actions -->
       <div class="card" style="margin-top: 20px;">
         <h3 style="margin-top: 0;">Capital Actions</h3>
         <div class="sub-btn-group">
