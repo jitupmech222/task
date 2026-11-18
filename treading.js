@@ -3,10 +3,15 @@ const supabaseUrl = "https://bgfwwhivzgzzchhkgkqr.supabase.co";
 const supabaseKey = "sb_publishable_8YLsit4SKIqzKowkIBLitw_QN3D4RxK";
 const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
+// ચોક્કસ 2 દશાંશ સ્થળ સુધી રાઉન્ડ કરવાનું હેલ્પર ફંક્શન
+function round2(num) {
+  return Math.round((Number(num) + Number.EPSILON) * 100) / 100;
+}
+
 // SAHI બ્રોકરેજ અને ટેક્સ ગણતરી
 function calculateSahiCharges(segment, side, price, qty) {
   if (!segment || !side) return 0;
-  const turnover = price * qty;
+  const turnover = round2(price * qty);
   if (isNaN(turnover) || turnover <= 0) return 0;
 
   let brokerage = 0;
@@ -33,8 +38,7 @@ function calculateSahiCharges(segment, side, price, qty) {
   }
 
   const gst = (brokerage + exch + sebi) * 0.18;
-  const total = brokerage + stt + exch + sebi + stamp + gst;
-  return Number(total.toFixed(2));
+  return round2(brokerage + stt + exch + sebi + stamp + gst);
 }
 
 const btnNew = document.getElementById("btn-new");
@@ -54,7 +58,7 @@ function updateFirstAutoCharges() {
   const side = tradeSideSelect.value;
   const price = parseFloat(firstPriceInput.value);
   const qty = parseFloat(firstQtyInput.value);
-  firstChargesInput.value = calculateSahiCharges(seg, side, price, qty);
+  firstChargesInput.value = calculateSahiCharges(seg, side, price, qty).toFixed(2);
 }
 
 tradeSegmentSelect.addEventListener("change", updateFirstAutoCharges);
@@ -89,9 +93,9 @@ document.getElementById("save-new-btn").addEventListener("click", async () => {
   const side = tradeSideSelect.value;
   const date = document.getElementById("first_date").value;
   const stock_name = document.getElementById("stock_name").value.trim().toUpperCase();
-  const price = parseFloat(firstPriceInput.value);
+  const price = round2(parseFloat(firstPriceInput.value));
   const qty = parseFloat(firstQtyInput.value);
-  const charges = parseFloat(firstChargesInput.value) || 0;
+  const charges = round2(parseFloat(firstChargesInput.value) || 0);
 
   if (!seg) {
     alert("કૃપા કરીને પહેલા Segment પસંદ કરો!");
@@ -108,7 +112,7 @@ document.getElementById("save-new-btn").addEventListener("click", async () => {
     return;
   }
 
-  const amount = price * qty;
+  const amount = round2(price * qty);
   const payload = { date: date, stock_name: stock_name };
 
   if (side === "BUY") {
@@ -128,7 +132,7 @@ document.getElementById("save-new-btn").addEventListener("click", async () => {
   if (error) {
     alert("ડેટા સેવ કરવામાં એરર આવી: " + error.message);
   } else {
-    alert(`નવો ${side} ટ્રેડ (Charges: ₹${charges}) સફળતાપૂર્વક સેવ થઈ ગયો!`);
+    alert(`નવો ${side} ટ્રેડ (Charges: ₹${charges.toFixed(2)}) સફળતાપૂર્વક સેવ થઈ ગયો!`);
     tradeSegmentSelect.value = "";
     tradeSideSelect.value = "";
     document.getElementById("stock_name").value = "";
@@ -148,7 +152,7 @@ function updateSecondAutoCharges() {
   const side = document.getElementById("missing_side").value;
   const price = parseFloat(secondPriceInput.value);
   const qty = parseFloat(secondQtyInput.value);
-  secondChargesInput.value = calculateSahiCharges(seg, side, price, qty);
+  secondChargesInput.value = calculateSahiCharges(seg, side, price, qty).toFixed(2);
 }
 
 completeSegmentSelect.addEventListener("change", updateSecondAutoCharges);
@@ -189,11 +193,11 @@ btnInProgress.addEventListener("click", async () => {
 
     const div = document.createElement("div");
     div.className = "pending-item";
-    div.innerHTML = `<strong>${item.stock_name}</strong> — [${doneSide}] Qty: ${doneQty} | Price: ₹${donePrice}`;
+    div.innerHTML = `<strong>${item.stock_name}</strong> — [${doneSide}] Qty: ${doneQty} | Price: ₹${Number(donePrice).toFixed(2)}`;
 
     div.addEventListener("click", () => {
       completeTradeForm.style.display = "block";
-      document.getElementById("selected-stock-title").innerText = `Complete ${missingSide} Entry: ${item.stock_name} ([${doneSide}] Qty: ${doneQty} @ ₹${donePrice})`;
+      document.getElementById("selected-stock-title").innerText = `Complete ${missingSide} Entry: ${item.stock_name} ([${doneSide}] Qty: ${doneQty} @ ₹${Number(donePrice).toFixed(2)})`;
       document.getElementById("lbl_second_price").innerText = `${missingSide} Price:`;
       document.getElementById("lbl_second_qty").innerText = `${missingSide} Qty:`;
       document.getElementById("lbl_second_charges").innerText = `${missingSide} Charges (Auto Calculated):`;
@@ -216,12 +220,12 @@ document.getElementById("update-complete-btn").addEventListener("click", async (
   const seg = completeSegmentSelect.value;
   const sr_no = document.getElementById("selected_sr_no").value;
   const missingSide = document.getElementById("missing_side").value;
-  const existingAmount = parseFloat(document.getElementById("hidden_existing_amount").value);
-  const existingCharges = parseFloat(document.getElementById("hidden_existing_charges").value);
+  const existingAmount = round2(parseFloat(document.getElementById("hidden_existing_amount").value));
+  const existingCharges = round2(parseFloat(document.getElementById("hidden_existing_charges").value));
 
-  const secondPrice = parseFloat(secondPriceInput.value);
+  const secondPrice = round2(parseFloat(secondPriceInput.value));
   const secondQty = parseFloat(secondQtyInput.value);
-  const secondCharges = parseFloat(secondChargesInput.value) || 0;
+  const secondCharges = round2(parseFloat(secondChargesInput.value) || 0);
 
   if (!seg) {
     alert("કૃપા કરીને પહેલા Segment પસંદ કરો!");
@@ -233,14 +237,14 @@ document.getElementById("update-complete-btn").addEventListener("click", async (
     return;
   }
 
-  const secondAmount = secondPrice * secondQty;
+  const secondAmount = round2(secondPrice * secondQty);
   const buy_amount = missingSide === "BUY" ? secondAmount : existingAmount;
   const sell_amount = missingSide === "SELL" ? secondAmount : existingAmount;
 
-  const total_trn_amount = buy_amount + sell_amount;
-  const total_charges = existingCharges + secondCharges;
-  const gross_profit_loss = sell_amount - buy_amount;
-  const net_profit_loss = gross_profit_loss - total_charges;
+  const total_trn_amount = round2(buy_amount + sell_amount);
+  const total_charges = round2(existingCharges + secondCharges);
+  const gross_profit_loss = round2(sell_amount - buy_amount);
+  const net_profit_loss = round2(gross_profit_loss - total_charges);
 
   const updatePayload = {
     buy_amount: buy_amount,
