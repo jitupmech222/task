@@ -3,10 +3,13 @@ const supabaseUrl = "https://bgfwwhivzgzzchhkgkqr.supabase.co";
 const supabaseKey = "sb_publishable_8YLsit4SKIqzKowkIBLitw_QN3D4RxK";
 const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-// SAHI બ્રોકરેજ અને ટેક્સ ગણતરી
+function round2(num) {
+  return Math.round((Number(num) + Number.EPSILON) * 100) / 100;
+}
+
 function calculateSahiCharges(segment, side, price, qty) {
   if (!segment || !side) return 0;
-  const turnover = price * qty;
+  const turnover = round2(price * qty);
   if (isNaN(turnover) || turnover <= 0) return 0;
 
   let brokerage = 0;
@@ -33,8 +36,7 @@ function calculateSahiCharges(segment, side, price, qty) {
   }
 
   const gst = (brokerage + exch + sebi) * 0.18;
-  const total = brokerage + stt + exch + sebi + stamp + gst;
-  return Number(total.toFixed(2));
+  return round2(brokerage + stt + exch + sebi + stamp + gst);
 }
 
 let allTaskNseRows = [];
@@ -54,7 +56,6 @@ function calculateTaskLevel(amount) {
   return Math.floor(Math.log2(amount / 10)) + 1;
 }
 
-// 1. પેજ લોડ થતા શરતો ચેક કરો અને SUM(for_task) ગણો
 async function initializePage() {
   try {
     loadingMsg.style.display = "block";
@@ -91,13 +92,13 @@ async function initializePage() {
 
     allTaskNseRows = allTrades;
     const latestSettledRow = allTrades[0];
-    lastActuallyClosing =
+    lastActuallyClosing = round2(
       latestSettledRow.actually_closing !== null && latestSettledRow.actually_closing !== undefined
         ? parseFloat(latestSettledRow.actually_closing)
-        : parseFloat(latestSettledRow.closing_balance) || 0;
+        : parseFloat(latestSettledRow.closing_balance) || 0
+    );
 
-    // task_nse ના બધા for_task કોલમનો સરવાળો (SUM) કરો
-    amountForTask = allTrades.reduce((sum, r) => sum + (parseFloat(r.for_task) || 0), 0);
+    amountForTask = round2(allTrades.reduce((sum, r) => sum + (parseFloat(r.for_task) || 0), 0));
 
     document.getElementById("display-closing-bal").innerText = `₹${lastActuallyClosing.toFixed(2)}`;
     document.getElementById("display-task-available").innerText = `₹${amountForTask.toFixed(2)}`;
@@ -146,7 +147,7 @@ async function loadNseTasks() {
       tbody.innerHTML = "";
 
       tasks.forEach((t) => {
-        const amt = Number(t.task_amount);
+        const amt = round2(t.task_amount);
         const lvl = calculateTaskLevel(amt);
         const isCurrentlyPlaying = inProgressTaskNumbers.has(Number(t.task_number));
 
@@ -198,9 +199,8 @@ document.getElementById("show-create-form-btn").addEventListener("click", () => 
   document.getElementById("auto_task_number").value = nextTaskNumber;
 });
 
-// નવો ટાસ્ક સેવ કરો અને task_nse ના for_task બેલેન્સમાંથી તે રકમ બાદ (minus) કરો
 document.getElementById("save-task-btn").addEventListener("click", async () => {
-  const taskAmount = parseFloat(document.getElementById("input_task_amount").value);
+  const taskAmount = round2(parseFloat(document.getElementById("input_task_amount").value));
 
   if (isNaN(taskAmount) || taskAmount <= 5) {
     alert("ટાસ્ક શરૂ કરવા માટે ₹5 થી વધુ રકમ દાખલ કરો!");
@@ -214,7 +214,6 @@ document.getElementById("save-task-btn").addEventListener("click", async () => {
 
   const initialLevel = calculateTaskLevel(taskAmount);
 
-  // 1. nse_task માં નવો ટાસ્ક ઉમેરો
   const { error: insertErr } = await supabaseClient
     .from("nse_task")
     .insert([
@@ -231,7 +230,6 @@ document.getElementById("save-task-btn").addEventListener("click", async () => {
     return;
   }
 
-  // 2. task_nse ટેબલના for_task કોલમમાંથી ક્રમશઃ taskAmount બાદ (minus) કરો
   let remainingToDeduct = taskAmount;
   const rowsWithTaskBalance = [...allTaskNseRows]
     .filter((r) => (parseFloat(r.for_task) || 0) > 0)
@@ -240,9 +238,9 @@ document.getElementById("save-task-btn").addEventListener("click", async () => {
   for (const row of rowsWithTaskBalance) {
     if (remainingToDeduct <= 0) break;
 
-    const currentRowForTask = parseFloat(row.for_task) || 0;
-    const deduct = Math.min(currentRowForTask, remainingToDeduct);
-    const updatedRowForTask = Number((currentRowForTask - deduct).toFixed(2));
+    const currentRowForTask = round2(parseFloat(row.for_task) || 0);
+    const deduct = round2(Math.min(currentRowForTask, remainingToDeduct));
+    const updatedRowForTask = round2(currentRowForTask - deduct);
 
     const { error: deductErr } = await supabaseClient
       .from("task_nse")
@@ -254,10 +252,10 @@ document.getElementById("save-task-btn").addEventListener("click", async () => {
       return;
     }
 
-    remainingToDeduct = Number((remainingToDeduct - deduct).toFixed(2));
+    remainingToDeduct = round2(remainingToDeduct - deduct);
   }
 
-  const remainingForTask = amountForTask - taskAmount;
+  const remainingForTask = round2(amountForTask - taskAmount);
   alert(`Task ${nextTaskNumber} (Level ${initialLevel}) બની ગયો!\nબાકી રહેલ Amount for Task: ₹${remainingForTask.toFixed(2)}`);
   document.getElementById("input_task_amount").value = "";
   document.getElementById("create-task-form").style.display = "none";
@@ -283,7 +281,7 @@ function updateTaskFirstAutoCharges() {
   const side = tradeSideSelect.value;
   const price = parseFloat(tFirstPriceInput.value);
   const qty = parseFloat(tFirstQtyInput.value);
-  tFirstChargesInput.value = calculateSahiCharges(seg, side, price, qty);
+  tFirstChargesInput.value = calculateSahiCharges(seg, side, price, qty).toFixed(2);
 }
 
 tSegmentSelect.addEventListener("change", updateTaskFirstAutoCharges);
@@ -319,9 +317,9 @@ document.getElementById("save-task-first-btn").addEventListener("click", async (
   const side = tradeSideSelect.value;
   const date = document.getElementById("t_first_date").value;
   const stock_name = document.getElementById("t_stock_name").value.trim().toUpperCase();
-  const price = parseFloat(tFirstPriceInput.value);
+  const price = round2(parseFloat(tFirstPriceInput.value));
   const qty = parseFloat(tFirstQtyInput.value);
-  const charges = parseFloat(tFirstChargesInput.value) || 0;
+  const charges = round2(parseFloat(tFirstChargesInput.value) || 0);
 
   if (!task_number) {
     alert("કોઈ Active Task ઉપલબ્ધ નથી!");
@@ -355,7 +353,7 @@ document.getElementById("save-task-first-btn").addEventListener("click", async (
     return;
   }
 
-  const amount = price * qty;
+  const amount = round2(price * qty);
   const payload = {
     task_number: Number(task_number),
     date: date,
@@ -386,7 +384,7 @@ document.getElementById("save-task-first-btn").addEventListener("click", async (
     .update({ status: "In Progress" })
     .eq("task_number", Number(task_number));
 
-  alert(`Task ${task_number} માટે ${stock_name} ની ${side} એન્ટ્રી (Charges: ₹${charges}) સેવ થઈ ગઈ!`);
+  alert(`Task ${task_number} માટે ${stock_name} ની ${side} એન્ટ્રી (Charges: ₹${charges.toFixed(2)}) સેવ થઈ ગઈ!`);
   tSegmentSelect.value = "";
   tradeSideSelect.value = "";
   document.getElementById("t_stock_name").value = "";
@@ -408,7 +406,7 @@ function updateTaskSecondAutoCharges() {
   const side = document.getElementById("t_missing_side").value;
   const price = parseFloat(tSecondPriceInput.value);
   const qty = parseFloat(tSecondQtyInput.value);
-  tSecondChargesInput.value = calculateSahiCharges(seg, side, price, qty);
+  tSecondChargesInput.value = calculateSahiCharges(seg, side, price, qty).toFixed(2);
 }
 
 tCompleteSegmentSelect.addEventListener("change", updateTaskSecondAutoCharges);
@@ -449,7 +447,7 @@ document.getElementById("btn-task-progress").addEventListener("click", async () 
 
     const div = document.createElement("div");
     div.className = "pending-item";
-    div.innerHTML = `<strong>[Task ${item.task_number}] ${item.stock_name}</strong> — [${doneSide}] Qty: ${doneQty} | Price: ₹${donePrice}`;
+    div.innerHTML = `<strong>[Task ${item.task_number}] ${item.stock_name}</strong> — [${doneSide}] Qty: ${doneQty} | Price: ₹${Number(donePrice).toFixed(2)}`;
 
     div.addEventListener("click", () => {
       taskCompleteForm.style.display = "block";
@@ -478,12 +476,12 @@ document.getElementById("complete-task-trade-btn").addEventListener("click", asy
   const tradeSrNo = document.getElementById("t_selected_trade_sr").value;
   const taskNo = Number(document.getElementById("t_selected_task_no").value);
   const missingSide = document.getElementById("t_missing_side").value;
-  const existingAmount = parseFloat(document.getElementById("t_existing_amount").value);
-  const existingCharges = parseFloat(document.getElementById("t_existing_charges").value);
+  const existingAmount = round2(parseFloat(document.getElementById("t_existing_amount").value));
+  const existingCharges = round2(parseFloat(document.getElementById("t_existing_charges").value));
 
-  const secondPrice = parseFloat(tSecondPriceInput.value);
+  const secondPrice = round2(parseFloat(tSecondPriceInput.value));
   const secondQty = parseFloat(tSecondQtyInput.value);
-  const secondCharges = parseFloat(tSecondChargesInput.value) || 0;
+  const secondCharges = round2(parseFloat(tSecondChargesInput.value) || 0);
 
   if (!seg) {
     alert("કૃપા કરીને પહેલા Segment પસંદ કરો!");
@@ -495,14 +493,14 @@ document.getElementById("complete-task-trade-btn").addEventListener("click", asy
     return;
   }
 
-  const secondAmount = secondPrice * secondQty;
+  const secondAmount = round2(secondPrice * secondQty);
   const buy_amount = missingSide === "BUY" ? secondAmount : existingAmount;
   const sell_amount = missingSide === "SELL" ? secondAmount : existingAmount;
 
-  const total_trn_amount = buy_amount + sell_amount;
-  const total_charges = existingCharges + secondCharges;
-  const gross_profit_loss = sell_amount - buy_amount;
-  const net_profit_loss = gross_profit_loss - total_charges;
+  const total_trn_amount = round2(buy_amount + sell_amount);
+  const total_charges = round2(existingCharges + secondCharges);
+  const gross_profit_loss = round2(sell_amount - buy_amount);
+  const net_profit_loss = round2(gross_profit_loss - total_charges);
 
   const updatePayload = {
     buy_amount: buy_amount,
@@ -544,8 +542,8 @@ document.getElementById("complete-task-trade-btn").addEventListener("click", asy
     return;
   }
 
-  const oldTaskAmount = parseFloat(taskRow.task_amount) || 0;
-  let newTaskAmount = oldTaskAmount + net_profit_loss;
+  const oldTaskAmount = round2(parseFloat(taskRow.task_amount) || 0);
+  let newTaskAmount = round2(oldTaskAmount + net_profit_loss);
   if (newTaskAmount < 0) newTaskAmount = 0;
 
   let newStatus = "Active";
