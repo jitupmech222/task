@@ -3,6 +3,10 @@ const supabaseUrl = "https://bgfwwhivzgzzchhkgkqr.supabase.co";
 const supabaseKey = "sb_publishable_8YLsit4SKIqzKowkIBLitw_QN3D4RxK";
 const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
+function round2(num) {
+  return Math.round((Number(num) + Number.EPSILON) * 100) / 100;
+}
+
 let currentOpeningBalance = 10000;
 let currentNetPL = 0;
 let currentClosingBalance = 10000;
@@ -11,18 +15,16 @@ let nextSettlementNumber = 1;
 const savingInput = document.getElementById("input_for_saving");
 const taskInput = document.getElementById("input_for_task");
 
-// Live Actually Closing ગણતરી (Closing - Saving - Task)
 function updateActuallyClosingPreview() {
-  const saving = parseFloat(savingInput.value) || 0;
-  const forTask = parseFloat(taskInput.value) || 0;
-  const actuallyClosing = currentClosingBalance - saving - forTask;
+  const saving = round2(parseFloat(savingInput.value) || 0);
+  const forTask = round2(parseFloat(taskInput.value) || 0);
+  const actuallyClosing = round2(currentClosingBalance - saving - forTask);
   document.getElementById("disp_actually_closing").innerText = `₹${actuallyClosing.toFixed(2)}`;
 }
 
 savingInput.addEventListener("input", updateActuallyClosingPreview);
 taskInput.addEventListener("input", updateActuallyClosingPreview);
 
-// બાકી રહેલા અને પૂર્ણ થયેલા સેટલમેન્ટ લોડ કરો
 async function loadPendingSettlements() {
   const pendingList = document.getElementById("pending-settlement-list");
   const completedTbody = document.getElementById("completed-settlement-tbody");
@@ -46,20 +48,19 @@ async function loadPendingSettlements() {
     .filter((r) => r.sattelment !== null)
     .sort((a, b) => Number(b.sattelment) - Number(a.sattelment));
 
-  // છેલ્લા સેટલમેન્ટનું actually_closing એ નવું opening_balance બનશે
   if (settledRows.length > 0) {
     nextSettlementNumber = Number(settledRows[0].sattelment) + 1;
     const lastSettled = settledRows[0];
-    currentOpeningBalance =
+    currentOpeningBalance = round2(
       lastSettled.actually_closing !== null && lastSettled.actually_closing !== undefined
         ? parseFloat(lastSettled.actually_closing)
-        : parseFloat(lastSettled.closing_balance) || 10000;
+        : parseFloat(lastSettled.closing_balance) || 10000
+    );
   } else {
     nextSettlementNumber = 1;
     currentOpeningBalance = 10000;
   }
 
-  // Completed ટેબલ ભરો
   if (settledRows.length === 0) {
     completedTbody.innerHTML = '<tr><td colspan="9">હજુ સુધી કોઈ Sattelment થયું નથી.</td></tr>';
   } else {
@@ -70,18 +71,17 @@ async function loadPendingSettlements() {
         <td><strong>#${r.sattelment}</strong></td>
         <td>${r.date || "-"}</td>
         <td>${r.stock_name || "-"}</td>
-        <td>₹${Number(r.opening_balance || 0).toFixed(2)}</td>
-        <td style="color:${Number(r.net_profit_loss) >= 0 ? '#15803d' : '#dc2626'}; font-weight:bold;">₹${Number(r.net_profit_loss || 0).toFixed(2)}</td>
-        <td>₹${Number(r.closing_balance || 0).toFixed(2)}</td>
-        <td>₹${Number(r.for_saving || 0).toFixed(2)}</td>
-        <td>₹${Number(r.for_task || 0).toFixed(2)}</td>
-        <td><strong>₹${Number(r.actually_closing ?? r.closing_balance ?? 0).toFixed(2)}</strong></td>
+        <td>₹${round2(r.opening_balance || 0).toFixed(2)}</td>
+        <td style="color:${Number(r.net_profit_loss) >= 0 ? '#15803d' : '#dc2626'}; font-weight:bold;">₹${round2(r.net_profit_loss || 0).toFixed(2)}</td>
+        <td>₹${round2(r.closing_balance || 0).toFixed(2)}</td>
+        <td>₹${round2(r.for_saving || 0).toFixed(2)}</td>
+        <td>₹${round2(r.for_task || 0).toFixed(2)}</td>
+        <td><strong>₹${round2(r.actually_closing ?? r.closing_balance ?? 0).toFixed(2)}</strong></td>
       `;
       completedTbody.appendChild(tr);
     });
   }
 
-  // એવા ટ્રેડ લાવો જે પૂર્ણ થઈ ગયા છે (buy અને sell બંને ભરાયેલા છે) પણ sattelment બાકી છે
   const pendingTrades = (allRows || []).filter(
     (r) => r.sattelment === null && r.buy_price !== null && r.sell_price !== null
   );
@@ -93,7 +93,7 @@ async function loadPendingSettlements() {
 
   pendingList.innerHTML = "";
   pendingTrades.forEach((trade, index) => {
-    const netPL = parseFloat(trade.net_profit_loss) || 0;
+    const netPL = round2(parseFloat(trade.net_profit_loss) || 0);
     const div = document.createElement("div");
     div.className = "pending-item";
     div.style.display = "flex";
@@ -115,7 +115,7 @@ async function loadPendingSettlements() {
       }
 
       currentNetPL = netPL;
-      currentClosingBalance = currentOpeningBalance + currentNetPL;
+      currentClosingBalance = round2(currentOpeningBalance + currentNetPL);
 
       document.getElementById("settle_sr_no").value = trade.sr_no;
       document.getElementById("settle_no").value = nextSettlementNumber;
@@ -139,26 +139,25 @@ async function loadPendingSettlements() {
   });
 }
 
-// Sattelment સેવ કરો
 document.getElementById("confirm-settlement-btn").addEventListener("click", async () => {
   const srNo = document.getElementById("settle_sr_no").value;
   const settleNo = Number(document.getElementById("settle_no").value);
-  const forSaving = parseFloat(savingInput.value) || 0;
-  const forTask = parseFloat(taskInput.value) || 0;
+  const forSaving = round2(parseFloat(savingInput.value) || 0);
+  const forTask = round2(parseFloat(taskInput.value) || 0);
 
   if (forSaving < 0 || forTask < 0) {
     alert("Saving અને Task ની રકમ 0 અથવા તેનાથી વધુ હોવી જોઈએ!");
     return;
   }
 
-  const actuallyClosing = currentClosingBalance - forSaving - forTask;
+  const actuallyClosing = round2(currentClosingBalance - forSaving - forTask);
 
   const { error } = await supabaseClient
     .from("task_nse")
     .update({
       sattelment: settleNo,
-      opening_balance: currentOpeningBalance,
-      closing_balance: currentClosingBalance,
+      opening_balance: round2(currentOpeningBalance),
+      closing_balance: round2(currentClosingBalance),
       for_saving: forSaving,
       for_task: forTask,
       actually_closing: actuallyClosing
