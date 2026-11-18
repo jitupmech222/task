@@ -123,7 +123,7 @@ async function loadNseTasks() {
       .order("task_number", { ascending: false });
 
     if (error) {
-      tbody.innerHTML = `<tr><td colspan="4" style="color:red;">એરર: ${error.message}</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="5" style="color:red;">એરર: ${error.message}</td></tr>`;
       return;
     }
 
@@ -141,12 +141,13 @@ async function loadNseTasks() {
 
     if (!tasks || tasks.length === 0) {
       nextTaskNumber = 1;
-      tbody.innerHTML = '<tr><td colspan="4">હજુ સુધી કોઈ ટાસ્ક બન્યો નથી.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="5">હજુ સુધી કોઈ ટાસ્ક બન્યો નથી.</td></tr>';
     } else {
       nextTaskNumber = Number(tasks[0].task_number) + 1;
       tbody.innerHTML = "";
 
       tasks.forEach((t) => {
+        const initAmt = round2(t.initial_amount ?? t.task_amount);
         const amt = round2(t.task_amount);
         const lvl = calculateTaskLevel(amt);
         const isCurrentlyPlaying = inProgressTaskNumbers.has(Number(t.task_number));
@@ -168,7 +169,8 @@ async function loadNseTasks() {
         const tr = document.createElement("tr");
         tr.innerHTML = `
           <td><strong>Task ${t.task_number}</strong></td>
-          <td>₹${amt.toFixed(2)}</td>
+          <td>₹${initAmt.toFixed(2)}</td>
+          <td><strong>₹${amt.toFixed(2)}</strong></td>
           <td><strong>Level ${lvl}</strong></td>
           <td>${statusBadge}</td>
         `;
@@ -190,7 +192,7 @@ async function loadNseTasks() {
 
     document.getElementById("auto_task_number").value = nextTaskNumber;
   } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="4" style="color:red;">એરર: ${err.message}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="5" style="color:red;">એરર: ${err.message}</td></tr>`;
   }
 }
 
@@ -214,11 +216,13 @@ document.getElementById("save-task-btn").addEventListener("click", async () => {
 
   const initialLevel = calculateTaskLevel(taskAmount);
 
+  // initial_amount અને task_amount બંને સેવ કરો
   const { error: insertErr } = await supabaseClient
     .from("nse_task")
     .insert([
       {
         task_number: nextTaskNumber,
+        initial_amount: taskAmount,
         task_amount: taskAmount,
         task_level: initialLevel,
         status: "Active"
