@@ -29,7 +29,6 @@ async function loadCapitalReport() {
   cardsArea.style.display = "none";
 
   try {
-    // 1. task_nse ટેબલમાંથી બધો ડેટા લાવો
     const { data: nseRows, error: nseErr } = await supabaseClient
       .from("task_nse")
       .select("*")
@@ -37,30 +36,25 @@ async function loadCapitalReport() {
 
     if (nseErr) throw nseErr;
 
-    // 2. nse_task ટેબલમાંથી બધા ટાસ્ક લાવો
     const { data: taskRows, error: taskErr } = await supabaseClient
       .from("nse_task")
       .select("*");
 
     if (taskErr) throw taskErr;
 
-    // 3. nse_saving_withdrawals ટેબલમાંથી બધા ઉપાડ લાવો
     const { data: withdrawRows, error: wErr } = await supabaseClient
       .from("nse_saving_withdrawals")
       .select("*");
 
     if (wErr) throw wErr;
 
-    // 4. nse_added_amounts ટેબલમાંથી ઉમેરેલી બધી રકમ લાવો
     const { data: addedRows, error: aErr } = await supabaseClient
       .from("nse_added_amounts")
       .select("*");
 
     if (aErr) throw aErr;
 
-    // --- ગણતરીઓ ---
-
-    // A) Treading Amount = છેલ્લા સેટલમેન્ટની actually_closing રકમ
+    // A) Treading Amount
     const settledRows = (nseRows || []).filter((r) => r.sattelment !== null);
     latestSettledRecord = settledRows.length > 0 ? settledRows[0] : null;
 
@@ -75,37 +69,53 @@ async function loadCapitalReport() {
       currentTreadingAmount = round2(10000 + totalAdded);
     }
 
-    // B) Task Amount = task_nse ના બધા for_task નો સરવાળો
+    // B) Remaining Task Amount (for_task)
     const taskAmountBalance = round2(
       (nseRows || []).reduce((sum, r) => sum + (parseFloat(r.for_task) || 0), 0)
     );
 
-    // C) Active Task Amount = જે ટાસ્ક Closed નથી તેમની task_amount નો સરવાળો
-    const activeTaskAmount = round2(
-      (taskRows || []).reduce((sum, t) => {
-        const amt = parseFloat(t.task_amount) || 0;
-        const status = t.status || (amt <= 5 ? "Closed" : "Active");
-        if (status !== "Closed" && amt > 5) {
-          return sum + amt;
-        }
-        return sum;
-      }, 0)
-    );
+    // C) Active Task Amount & Lifetime Task Counts
+    let activeTaskAmount = 0;
+    let totalInitialUsedInTasks = 0;
+    let activeCount = 0;
+    let closedCount = 0;
 
-    // D) Total Saving Amount = task_nse ના બધા for_saving નો સરવાળો
+    (taskRows || []).forEach((t) => {
+      const amt = parseFloat(t.task_amount) || 0;
+      const initAmt = parseFloat(t.initial_amount ?? t.task_amount) || 0;
+      const status = t.status || (amt <= 5 ? "Closed" : "Active");
+
+      totalInitialUsedInTasks += initAmt;
+
+      if (status !== "Closed" && amt > 5) {
+        activeTaskAmount += amt;
+        activeCount += 1;
+      } else {
+        closedCount += 1;
+      }
+    });
+
+    activeTaskAmount = round2(activeTaskAmount);
+    totalInitialUsedInTasks = round2(totalInitialUsedInTasks);
+
+    // અત્યાર સુધી ટાસ્ક માટે જમા થયેલી કુલ રકમ = બાકી for_task + બધા ટાસ્કની initial_amount
+    const lifetimeGeneratedForTask = round2(taskAmountBalance + totalInitialUsedInTasks);
+    const totalTasksCount = (taskRows || []).length;
+
+    // D) Total Saving Amount
     const totalSavingAmount = round2(
       (nseRows || []).reduce((sum, r) => sum + (parseFloat(r.for_saving) || 0), 0)
     );
 
-    // E) Withdrawal Amount = nse_saving_withdrawals નો કુલ સરવાળો
+    // E) Withdrawal Amount
     const totalWithdrawalAmount = round2(
       (withdrawRows || []).reduce((sum, w) => sum + (parseFloat(w.amount) || 0), 0)
     );
 
-    // F) Balance for Withdrawal = Total Saving - Total Withdrawal
+    // F) Balance for Withdrawal
     availableWithdrawalBalance = round2(totalSavingAmount - totalWithdrawalAmount);
 
-    // G) Total Added Amount = nse_added_amounts નો કુલ સરવાળો
+    // G) Total Added Amount
     const totalAddedAmount = round2(
       (addedRows || []).reduce((sum, a) => sum + (parseFloat(a.amount) || 0), 0)
     );
@@ -124,6 +134,11 @@ async function loadCapitalReport() {
     document.getElementById("val-withdrawal-amt").innerText = `₹${totalWithdrawalAmount.toFixed(2)}`;
     document.getElementById("val-balance-withdrawal").innerText = `₹${availableWithdrawalBalance.toFixed(2)}`;
     document.getElementById("val-added-amt").innerText = `₹${totalAddedAmount.toFixed(2)}`;
+
+    // Lifetime Task Summary
+    document.getElementById("val-lifetime-for-task").innerText = `₹${lifetimeGeneratedForTask.toFixed(2)}`;
+    document.getElementById("val-total-tasks-count").innerText = `${totalTasksCount} Tasks`;
+    document.getElementById("val-tasks-breakdown").innerText = `Active: ${activeCount} | Closed: ${closedCount} | Used: ₹${totalInitialUsedInTasks.toFixed(2)}`;
     document.getElementById("max-withdraw-hint").innerText = `₹${availableWithdrawalBalance.toFixed(2)}`;
 
     loadingEl.style.display = "none";
@@ -133,7 +148,6 @@ async function loadCapitalReport() {
   }
 }
 
-// + Add Treading Amount ફોર્મ ટોગલ
 document.getElementById("btn-toggle-add").addEventListener("click", () => {
   const addBox = document.getElementById("add-amount-form-box");
   const wBox = document.getElementById("withdraw-form-box");
@@ -141,7 +155,6 @@ document.getElementById("btn-toggle-add").addEventListener("click", () => {
   addBox.style.display = addBox.style.display === "none" ? "block" : "none";
 });
 
-// - Withdraw from Saving ફોર્મ ટોગલ
 document.getElementById("btn-toggle-withdraw").addEventListener("click", () => {
   const addBox = document.getElementById("add-amount-form-box");
   const wBox = document.getElementById("withdraw-form-box");
@@ -149,7 +162,6 @@ document.getElementById("btn-toggle-withdraw").addEventListener("click", () => {
   wBox.style.display = wBox.style.display === "none" ? "block" : "none";
 });
 
-// 1. Added Amount સેવ કરો અને છેલ્લા Closing / Actually Closing માં ઉમેરો
 document.getElementById("btn-save-added").addEventListener("click", async () => {
   const date = document.getElementById("a_date").value;
   const amount = round2(parseFloat(document.getElementById("a_amount").value));
@@ -160,7 +172,6 @@ document.getElementById("btn-save-added").addEventListener("click", async () => 
     return;
   }
 
-  // A) nse_added_amounts ટેબલમાં સેવ કરો
   const { error: insertErr } = await supabaseClient
     .from("nse_added_amounts")
     .insert([{ date: date, amount: amount, remark: remark || null }]);
@@ -170,7 +181,6 @@ document.getElementById("btn-save-added").addEventListener("click", async () => 
     return;
   }
 
-  // B) task_nse ના છેલ્લા સેટલમેન્ટ થયેલા રેકોર્ડની actually_closing અને closing_balance અપડેટ કરો
   if (latestSettledRecord) {
     const oldActually =
       latestSettledRecord.actually_closing !== null && latestSettledRecord.actually_closing !== undefined
@@ -206,7 +216,6 @@ document.getElementById("btn-save-added").addEventListener("click", async () => 
   await loadCapitalReport();
 });
 
-// 2. Saving માંથી Withdrawal સેવ કરો
 document.getElementById("btn-save-withdrawal").addEventListener("click", async () => {
   const date = document.getElementById("w_date").value;
   const amount = round2(parseFloat(document.getElementById("w_amount").value));
