@@ -7,7 +7,6 @@ function round2(num) {
   return Math.round((Number(num) + Number.EPSILON) * 100) / 100;
 }
 
-// જે કોલમમાં હંમેશા 2 દશાંશ સ્થળ (0.00) બતાવવા છે તેની યાદી
 const CURRENCY_COLUMNS = new Set([
   "buy_price",
   "buy_charges",
@@ -24,7 +23,8 @@ const CURRENCY_COLUMNS = new Set([
   "for_saving",
   "for_task",
   "actually_closing",
-  "task_amount"
+  "task_amount",
+  "amount"
 ]);
 
 function formatCellValue(col, val) {
@@ -89,6 +89,16 @@ const TABLE_CONFIG = {
       "gross_profit_loss",
       "net_profit_loss"
     ]
+  },
+  nse_saving_withdrawals: {
+    pk: "sr_no",
+    orderCol: "sr_no",
+    columns: ["sr_no", "date", "amount", "remark"]
+  },
+  nse_added_amounts: {
+    pk: "sr_no",
+    orderCol: "sr_no",
+    columns: ["sr_no", "date", "amount", "remark"]
   }
 };
 
