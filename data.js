@@ -3,7 +3,38 @@ const supabaseUrl = "https://bgfwwhivzgzzchhkgkqr.supabase.co";
 const supabaseKey = "sb_publishable_8YLsit4SKIqzKowkIBLitw_QN3D4RxK";
 const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-// ત્રણેય ટેબલનું સ્ટ્રક્ચર (Primary Key અને Columns)
+function round2(num) {
+  return Math.round((Number(num) + Number.EPSILON) * 100) / 100;
+}
+
+// જે કોલમમાં હંમેશા 2 દશાંશ સ્થળ (0.00) બતાવવા છે તેની યાદી
+const CURRENCY_COLUMNS = new Set([
+  "buy_price",
+  "buy_charges",
+  "buy_amount",
+  "sell_price",
+  "sell_charges",
+  "sell_amount",
+  "total_trn_amount",
+  "total_charges",
+  "gross_profit_loss",
+  "net_profit_loss",
+  "opening_balance",
+  "closing_balance",
+  "for_saving",
+  "for_task",
+  "actually_closing",
+  "task_amount"
+]);
+
+function formatCellValue(col, val) {
+  if (val === null || val === undefined || val === "") return "";
+  if (CURRENCY_COLUMNS.has(col) && !isNaN(Number(val))) {
+    return round2(val).toFixed(2);
+  }
+  return String(val);
+}
+
 const TABLE_CONFIG = {
   task_nse: {
     pk: "sr_no",
@@ -64,7 +95,7 @@ const TABLE_CONFIG = {
 let currentTable = "task_nse";
 let rawRows = [];
 let filteredRows = [];
-let activeFilters = {}; // { colName: Set of allowed string values }
+let activeFilters = {};
 let currentFilterCol = null;
 let editingPkValue = null;
 
@@ -72,7 +103,6 @@ const thead = document.getElementById("data-thead");
 const tbody = document.getElementById("data-tbody");
 const filterPopup = document.getElementById("column-filter-popup");
 
-// 1. ટેબલ બટન સ્વિચિંગ (task_nse / nse_task / nse_task_trades)
 document.querySelectorAll(".tab-btn").forEach((btn) => {
   btn.addEventListener("click", () => {
     document.querySelectorAll(".tab-btn").forEach((b) => b.classList.remove("active"));
@@ -84,7 +114,6 @@ document.querySelectorAll(".tab-btn").forEach((btn) => {
   });
 });
 
-// 2. પસંદ કરેલા ટેબલનો ડેટા Supabase માંથી લાવો
 async function loadTableData() {
   const cfg = TABLE_CONFIG[currentTable];
   document.getElementById("active-table-title").innerText = `Table: ${currentTable}`;
@@ -105,7 +134,6 @@ async function loadTableData() {
   applyFiltersAndRender();
 }
 
-// 3. ફિલ્ટર લાગુ કરીને ટેબલ બતાવો
 function applyFiltersAndRender() {
   const cfg = TABLE_CONFIG[currentTable];
 
@@ -113,14 +141,14 @@ function applyFiltersAndRender() {
     return Object.keys(activeFilters).every((col) => {
       const allowedSet = activeFilters[col];
       if (!allowedSet) return true;
-      const valStr = row[col] === null || row[col] === undefined ? "(Blank)" : String(row[col]);
+      const formatted = formatCellValue(col, row[col]);
+      const valStr = formatted === "" ? "(Blank)" : formatted;
       return allowedSet.has(valStr);
     });
   });
 
   document.getElementById("row-count-badge").innerText = `(${filteredRows.length} / ${rawRows.length} rows)`;
 
-  // Header બનાવો (દરેક કોલમ પર Filter બટન સાથે)
   const trHead = document.createElement("tr");
   const thAction = document.createElement("th");
   thAction.innerText = "Actions";
@@ -137,7 +165,6 @@ function applyFiltersAndRender() {
   thead.innerHTML = "";
   thead.appendChild(trHead);
 
-  // Filter બટન ક્લિક ઇવેન્ટ
   thead.querySelectorAll(".th-filter-btn").forEach((fBtn) => {
     fBtn.addEventListener("click", (e) => {
       e.stopPropagation();
@@ -145,7 +172,6 @@ function applyFiltersAndRender() {
     });
   });
 
-  // Body રો બનાવો
   if (filteredRows.length === 0) {
     tbody.innerHTML = `<tr><td colspan="${cfg.columns.length + 1}">કોઈ ડેટા મળ્યો નથી.</td></tr>`;
     return;
@@ -155,7 +181,6 @@ function applyFiltersAndRender() {
   filteredRows.forEach((row) => {
     const tr = document.createElement("tr");
 
-    // Edit અને Delete બટન
     const tdAct = document.createElement("td");
     tdAct.style.whiteSpace = "nowrap";
     tdAct.innerHTML = `
@@ -170,8 +195,7 @@ function applyFiltersAndRender() {
     cfg.columns.forEach((col) => {
       const td = document.createElement("td");
       td.style.whiteSpace = "nowrap";
-      const val = row[col];
-      td.innerText = val === null || val === undefined ? "" : val;
+      td.innerText = formatCellValue(col, row[col]);
       tr.appendChild(td);
     });
 
@@ -179,14 +203,18 @@ function applyFiltersAndRender() {
   });
 }
 
-// 4. Excel-style Column Filter Popup
 function openColumnFilter(col, btnEl) {
   currentFilterCol = col;
   document.getElementById("filter-col-title").innerText = `Filter: ${col}`;
   document.getElementById("filter-search-input").value = "";
 
   const uniqueVals = Array.from(
-    new Set(rawRows.map((r) => (r[col] === null || r[col] === undefined ? "(Blank)" : String(r[col]))))
+    new Set(
+      rawRows.map((r) => {
+        const formatted = formatCellValue(col, r[col]);
+        return formatted === "" ? "(Blank)" : formatted;
+      })
+    )
   ).sort();
 
   const container = document.getElementById("filter-values-container");
@@ -250,7 +278,6 @@ document.getElementById("btn-clear-filters").addEventListener("click", () => {
   applyFiltersAndRender();
 });
 
-// 5. Edit Record Modal
 function openEditModal(row) {
   const cfg = TABLE_CONFIG[currentTable];
   editingPkValue = row[cfg.pk];
@@ -261,13 +288,13 @@ function openEditModal(row) {
 
   cfg.columns.forEach((col) => {
     const isPk = col === cfg.pk;
-    const val = row[col] === null || row[col] === undefined ? "" : row[col];
+    const val = formatCellValue(col, row[col]);
 
     const div = document.createElement("div");
     div.style.marginBottom = "10px";
     div.innerHTML = `
       <label style="font-size: 13px; font-weight: bold; display:block; margin-bottom:3px;">${col}:</label>
-      <input type="text" data-col="${col}" value="${String(val).replace(/"/g, "&quot;")}" ${isPk ? "readonly style='background:#e2e8f0; width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:5px; box-sizing:border-box;'" : "style='width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:5px; box-sizing:border-box;'"} />
+      <input type="text" data-col="${col}" value="${val.replace(/"/g, "&quot;")}" ${isPk ? "readonly style='background:#e2e8f0; width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:5px; box-sizing:border-box;'" : "style='width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:5px; box-sizing:border-box;'"} />
     `;
     container.appendChild(div);
   });
@@ -291,7 +318,13 @@ document.getElementById("btn-save-edit").addEventListener("click", async () => {
     const col = inp.dataset.col;
     if (col === cfg.pk) return;
     const rawVal = inp.value.trim();
-    updateObj[col] = rawVal === "" ? null : rawVal;
+    if (rawVal === "") {
+      updateObj[col] = null;
+    } else if (CURRENCY_COLUMNS.has(col) && !isNaN(Number(rawVal))) {
+      updateObj[col] = round2(Number(rawVal));
+    } else {
+      updateObj[col] = rawVal;
+    }
   });
 
   const { error } = await supabaseClient
@@ -308,7 +341,6 @@ document.getElementById("btn-save-edit").addEventListener("click", async () => {
   }
 });
 
-// 6. Delete Record
 async function deleteRow(row) {
   const cfg = TABLE_CONFIG[currentTable];
   const pkVal = row[cfg.pk];
@@ -330,7 +362,6 @@ async function deleteRow(row) {
   }
 }
 
-// 7. Download Excel (.xlsx)
 document.getElementById("btn-download-excel").addEventListener("click", () => {
   if (filteredRows.length === 0) {
     alert("ડાઉનલોડ કરવા માટે કોઈ ડેટા નથી!");
@@ -341,7 +372,14 @@ document.getElementById("btn-download-excel").addEventListener("click", () => {
   const exportData = filteredRows.map((r) => {
     const obj = {};
     cfg.columns.forEach((col) => {
-      obj[col] = r[col] ?? "";
+      const val = r[col];
+      if (val === null || val === undefined || val === "") {
+        obj[col] = "";
+      } else if (CURRENCY_COLUMNS.has(col) && !isNaN(Number(val))) {
+        obj[col] = round2(Number(val));
+      } else {
+        obj[col] = val;
+      }
     });
     return obj;
   });
@@ -354,5 +392,4 @@ document.getElementById("btn-download-excel").addEventListener("click", () => {
 
 document.getElementById("btn-refresh-data").addEventListener("click", loadTableData);
 
-// પેજ લોડ થતા ડિફોલ્ટ task_nse લોડ કરો
 loadTableData();
