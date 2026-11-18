@@ -23,6 +23,7 @@ const CURRENCY_COLUMNS = new Set([
   "for_saving",
   "for_task",
   "actually_closing",
+  "initial_amount",
   "task_amount",
   "amount"
 ]);
@@ -66,7 +67,7 @@ const TABLE_CONFIG = {
   nse_task: {
     pk: "task_number",
     orderCol: "task_number",
-    columns: ["task_number", "task_amount", "task_level", "status"]
+    columns: ["task_number", "initial_amount", "task_amount", "task_level", "status"]
   },
   nse_task_trades: {
     pk: "sr_no",
