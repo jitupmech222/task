@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>P/L Report — NSE Task Pro</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  </head>
+  <body>
+    <!-- Top Sticky Desktop Header -->
+    <header class="app-header">
+      <div class="header-inner">
+        <a href="index.html" class="brand-badge">
+          <div class="brand-icon">📈</div>
+          <div>
+            <div class="brand-title">NSE Task Pro</div>
+            <div class="brand-sub">Trading & Task System</div>
+          </div>
+        </a>
+
+        <!-- Desktop Navigation Bar -->
+        <nav class="main-nav-bar">
+          <a href="index.html" class="nav-link-btn">📊 Dashboard</a>
+          <a href="treading.html" class="nav-link-btn">⚡ Trading</a>
+          <a href="generate_task.html" class="nav-link-btn">🎯 Generate Task</a>
+          <a href="sattelment.html" class="nav-link-btn">⚖️ Settlement</a>
+          <a href="report.html" class="nav-link-btn">📑 Capital Report</a>
+          <a href="pl_report.html" class="nav-link-btn active">📈 P/L Report</a>
+          <a href="data.html" class="nav-link-btn">🗄️ Database Data</a>
+        </nav>
+      </div>
+    </header>
+
+    <div class="container">
+      <!-- તારીખ પસંદ કરવાનો વિભાગ (From - Upto) -->
+      <div class="card">
+        <div class="card-header-flex">
+          <h2 style="margin: 0;">Select Date Range</h2>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; align-items: flex-end;">
+          <div>
+            <label style="font-size: 13px; font-weight: 700; color: #475569;">From Date:</label>
+            <input type="date" id="from_date" style="margin-top: 4px;" />
+          </div>
+          <div>
+            <label style="font-size: 13px; font-weight: 700; color: #475569;">Upto Date:</label>
+            <input type="date" id="upto_date" style="margin-top: 4px;" />
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button type="button" id="btn-show-pl" class="action-btn" style="flex: 1;">
+              <span>🔍</span> Show P/L
+            </button>
+            <button type="button" id="btn-export-pl" class="action-btn" style="flex: 1; background: linear-gradient(135deg, #10b981, #059669);">
+              <span>📥</span> Excel
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- તારીખ મુજબ P/L ટેબલ અને Total Summary -->
+      <div class="card">
+        <div class="card-header-flex">
+          <h2 id="report-range-title" style="margin: 0;">Date-Wise Net Profit / Loss</h2>
+          <span class="table-scroll-hint">← Swipe to view all →</span>
+        </div>
+
+        <div class="table-wrapper">
+          <table id="report-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Total Trades</th>
+                <th>Net Profit / Loss</th>
+              </tr>
+            </thead>
+            <tbody id="pl-report-tbody">
+              <tr><td colspan="3" style="text-align:center; padding: 20px; color: #64748b;">તારીખ પસંદ કરીને 'Show P/L' દબાવો.</td></tr>
+            </tbody>
+            <tfoot id="pl-report-tfoot" style="display: none;">
+              <tr style="background-color: #f8fafc; font-weight: bold; font-size: 15px; border-top: 2px solid #cbd5e1;">
+                <td style="color: #0f172a;">TOTAL SUMMARY</td>
+                <td id="summary-total-trades">0</td>
+                <td id="summary-total-pl">₹0.00</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mobile Bottom Navigation Bar -->
+    <nav class="mobile-bottom-nav">
+      <a href="index.html" class="bottom-nav-item">
+        <span class="nav-icon">📊</span>
+        <span>Home</span>
+      </a>
+      <a href="treading.html" class="bottom-nav-item">
+        <span class="nav-icon">⚡</span>
+        <span>Trade</span>
+      </a>
+      <a href="generate_task.html" class="bottom-nav-item">
+        <span class="nav-icon">🎯</span>
+        <span>Task</span>
+      </a>
+      <a href="sattelment.html" class="bottom-nav-item">
+        <span class="nav-icon">⚖️</span>
+        <span>Settle</span>
+      </a>
+      <button type="button" class="bottom-nav-item active" onclick="openMobileDrawer()">
+        <span class="nav-icon">⋯</span>
+        <span>More</span>
+      </button>
+    </nav>
+
+    <!-- Slide-up Mobile Drawer -->
+    <div id="drawer-overlay" class="mobile-drawer-overlay" onclick="closeMobileDrawer()"></div>
+    <div id="mobile-drawer" class="mobile-drawer">
+      <div class="drawer-drag-handle"></div>
+      <div style="font-size: 16px; font-weight: 800; color: #0f172a; margin-bottom: 14px; text-align: center;">More Navigation</div>
+      <div class="drawer-menu-grid">
+        <a href="report.html" class="drawer-menu-item">
+          <span class="item-icon">📑</span>
+          <span>Capital Report</span>
+        </a>
+        <a href="pl_report.html" class="drawer-menu-item" style="border-color: #2563eb; background: #eff6ff;">
+          <span class="item-icon">📈</span>
+          <span>P/L Report</span>
+        </a>
+        <a href="data.html" class="drawer-menu-item">
+          <span class="item-icon">🗄️</span>
+          <span>Database Data</span>
+        </a>
+        <a href="index.html" class="drawer-menu-item">
+          <span class="item-icon">🏠</span>
+          <span>Dashboard</span>
+        </a>
+      </div>
+    </div>
+
+    <script>
+      function openMobileDrawer() {
+        document.getElementById("drawer-overlay").style.display = "block";
+        document.getElementById("mobile-drawer").classList.add("open");
+      }
+      function closeMobileDrawer() {
+        document.getElementById("mobile-drawer").classList.remove("open");
+        setTimeout(() => { document.getElementById("drawer-overlay").style.display = "none"; }, 200);
+      }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="pl_report.js"></script>
+  </body>
+</html>
