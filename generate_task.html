@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Generate Task — NSE Task Pro</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <!-- Top Sticky Desktop Header -->
+    <header class="app-header">
+      <div class="header-inner">
+        <a href="index.html" class="brand-badge">
+          <div class="brand-icon">📈</div>
+          <div>
+            <div class="brand-title">NSE Task Pro</div>
+            <div class="brand-sub">Trading & Task System</div>
+          </div>
+        </a>
+
+        <!-- Desktop Navigation Bar -->
+        <nav class="main-nav-bar">
+          <a href="index.html" class="nav-link-btn">📊 Dashboard</a>
+          <a href="treading.html" class="nav-link-btn">⚡ Trading</a>
+          <a href="generate_task.html" class="nav-link-btn active">🎯 Generate Task</a>
+          <a href="play_task.html" class="nav-link-btn">▶️ Play Task</a>
+          <a href="sattelment.html" class="nav-link-btn">⚖️ Settlement</a>
+          <a href="report.html" class="nav-link-btn">📑 Capital Report</a>
+          <a href="pl_report.html" class="nav-link-btn">📈 P/L Report</a>
+          <a href="data.html" class="nav-link-btn">🗄️ Database Data</a>
+        </nav>
+      </div>
+    </header>
+
+    <div class="container">
+      <!-- 1. બેલેન્સ અને નવો ટાસ્ક બનાવવાનો વિભાગ -->
+      <div class="card">
+        <div id="loading-msg" style="padding: 12px; color: #64748b; font-weight: 500;">🔄 ચેક થઈ રહ્યું છે...</div>
+
+        <div id="pending-warning" style="display: none; color: #b91c1c; font-weight: 600; padding: 14px 18px; background: #fee2e2; border: 1px solid #fca5a5; border-radius: 10px; line-height: 1.5;">
+          ⚠️ બધા જ ટ્રેડનું Sattelment પૂર્ણ થયેલું નથી! કૃપા કરીને પહેલા <a href="sattelment.html" style="color: #991b1b; font-weight: 700; text-decoration: underline;">Sattelment વિભાગ</a> માં જઈને બધા રેકોર્ડ પૂર્ણ કરો.
+        </div>
+
+        <div id="task-generator-area" style="display: none;">
+          <div class="summary-grid" style="margin-top: 0; margin-bottom: 20px;">
+            <div class="stat-card" style="background: linear-gradient(135deg, #f8fafc, #f1f5f9); border-color: #cbd5e1;">
+              <div class="stat-title">Last Actually Closing</div>
+              <div id="display-closing-bal" class="stat-value" style="color: #0f172a;">₹0.00</div>
+              <div class="stat-sub">Trading capital balance</div>
+            </div>
+            <div class="stat-card" style="background: linear-gradient(135deg, #eff6ff, #dbeafe); border-color: #93c5fd;">
+              <div class="stat-title" style="color: #1d4ed8;">Available for Task</div>
+              <div id="display-task-available" class="stat-value" style="color: #1e40af;">₹0.00</div>
+              <div class="stat-sub" style="color: #3b82f6;">Remaining for_task balance</div>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+            <button type="button" id="show-create-form-btn" class="action-btn">
+              <span>➕</span> Create New Task
+            </button>
+            <button type="button" onclick="window.location.href='play_task.html'" class="action-btn" style="background: linear-gradient(135deg, #10b981, #059669);">
+              <span>▶️</span> Play Active Task
+            </button>
+          </div>
+
+          <div id="create-task-form" class="form-box" style="display: none; margin-top: 18px;">
+            <h3 style="color: #1d4ed8; margin-top: 0;">New Task Details</h3>
+            
+            <label>Task Number (Auto Generated):</label>
+            <input type="number" id="auto_task_number" readonly style="background-color: #f1f5f9; font-weight: bold; color: #1e3a8a;" />
+
+            <label>Task Amount (₹10=L1, ₹20=L2, ₹40=L3, ₹80=L4...):</label>
+            <input type="number" step="0.01" id="input_task_amount" placeholder="રકમ દાખલ કરો (દા.ત. 20)" required />
+
+            <button type="button" id="save-task-btn" class="submit-btn">
+              <span>💾</span> Save Task & Deduct from for_task
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. બધા ટાસ્કનું લિસ્ટ -->
+      <div class="card">
+        <div class="card-header-flex">
+          <h2 style="margin: 0;">Tasks Status & Levels (nse_task)</h2>
+          <span class="table-scroll-hint">← Swipe to view all →</span>
+        </div>
+        <div class="table-wrapper">
+          <table id="report-table">
+            <thead>
+              <tr>
+                <th>Task No</th>
+                <th>Initial Amt</th>
+                <th>Current Amt</th>
+                <th>Task Level</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="nse-task-tbody">
+              <tr><td colspan="5" style="text-align:center; padding: 20px; color: #64748b;">લોડ થઈ રહ્યું છે...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mobile Bottom Navigation Bar -->
+    <nav class="mobile-bottom-nav">
+      <a href="index.html" class="bottom-nav-item">
+        <span class="nav-icon">📊</span>
+        <span>Home</span>
+      </a>
+      <a href="treading.html" class="bottom-nav-item">
+        <span class="nav-icon">⚡</span>
+        <span>Trade</span>
+      </a>
+      <a href="generate_task.html" class="bottom-nav-item active">
+        <span class="nav-icon">🎯</span>
+        <span>Task</span>
+      </a>
+      <a href="play_task.html" class="bottom-nav-item">
+        <span class="nav-icon">▶️</span>
+        <span>Play</span>
+      </a>
+      <button type="button" class="bottom-nav-item" onclick="openMobileDrawer()">
+        <span class="nav-icon">⋯</span>
+        <span>More</span>
+      </button>
+    </nav>
+
+    <!-- Slide-up Mobile Drawer -->
+    <div id="drawer-overlay" class="mobile-drawer-overlay" onclick="closeMobileDrawer()"></div>
+    <div id="mobile-drawer" class="mobile-drawer">
+      <div class="drawer-drag-handle"></div>
+      <div style="font-size: 16px; font-weight: 800; color: #0f172a; margin-bottom: 14px; text-align: center;">More Navigation</div>
+      <div class="drawer-menu-grid">
+        <a href="sattelment.html" class="drawer-menu-item">
+          <span class="item-icon">⚖️</span>
+          <span>Settlement</span>
+        </a>
+        <a href="report.html" class="drawer-menu-item">
+          <span class="item-icon">📑</span>
+          <span>Capital Report</span>
+        </a>
+        <a href="pl_report.html" class="drawer-menu-item">
+          <span class="item-icon">📈</span>
+          <span>P/L Report</span>
+        </a>
+        <a href="data.html" class="drawer-menu-item">
+          <span class="item-icon">🗄️</span>
+          <span>Database Data</span>
+        </a>
+      </div>
+    </div>
+
+    <script>
+      function openMobileDrawer() {
+        document.getElementById("drawer-overlay").style.display = "block";
+        document.getElementById("mobile-drawer").classList.add("open");
+      }
+      function closeMobileDrawer() {
+        document.getElementById("mobile-drawer").classList.remove("open");
+        setTimeout(() => { document.getElementById("drawer-overlay").style.display = "none"; }, 200);
+      }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="generate_task.js"></script>
+  </body>
+</html>

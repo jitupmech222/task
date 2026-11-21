@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>NSE Settlement — NSE Task Pro</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <!-- Top Sticky Desktop Header -->
+    <header class="app-header">
+      <div class="header-inner">
+        <a href="index.html" class="brand-badge">
+          <div class="brand-icon">📈</div>
+          <div>
+            <div class="brand-title">NSE Task Pro</div>
+            <div class="brand-sub">Trading & Task System</div>
+          </div>
+        </a>
+
+        <!-- Desktop Navigation Bar -->
+        <nav class="main-nav-bar">
+          <a href="index.html" class="nav-link-btn">📊 Dashboard</a>
+          <a href="treading.html" class="nav-link-btn">⚡ Trading</a>
+          <a href="generate_task.html" class="nav-link-btn">🎯 Generate Task</a>
+          <a href="play_task.html" class="nav-link-btn">▶️ Play Task</a>
+          <a href="sattelment.html" class="nav-link-btn active">⚖️ Settlement</a>
+          <a href="report.html" class="nav-link-btn">📑 Capital Report</a>
+          <a href="pl_report.html" class="nav-link-btn">📈 P/L Report</a>
+          <a href="data.html" class="nav-link-btn">🗄️ Database Data</a>
+        </nav>
+      </div>
+    </header>
+
+    <div class="container">
+      <!-- 1. Pending Settlement Section -->
+      <div class="card">
+        <div class="card-header-flex">
+          <h2 style="margin: 0;">Pending Settlement Trades</h2>
+          <button type="button" onclick="loadPendingSettlements()" class="mini-btn">🔄 Refresh</button>
+        </div>
+
+        <div id="pending-settlement-list" style="display: flex; flex-direction: column; gap: 10px;">
+          લોડ થઈ રહ્યું છે...
+        </div>
+
+        <!-- Settlement Details & Input Form -->
+        <div id="settlement-form-box" class="form-box" style="display: none; margin-top: 24px; border-top: 2px dashed #cbd5e1; padding-top: 20px;">
+          <h3 id="settle-trade-title" style="color: #1d4ed8; margin: 0 0 16px 0; font-size: 16px;">Settlement Details</h3>
+          
+          <input type="hidden" id="settle_sr_no" />
+          <input type="hidden" id="settle_no" />
+
+          <div class="summary-grid" style="margin-top: 0; margin-bottom: 16px; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));">
+            <div class="stat-card" style="padding: 12px 14px; background: #f8fafc;">
+              <div class="stat-title" style="font-size: 11px;">Opening Balance</div>
+              <div id="disp_opening_bal" class="stat-value" style="font-size: 18px; margin: 4px 0;">₹0.00</div>
+            </div>
+            <div class="stat-card" style="padding: 12px 14px; background: #f8fafc;">
+              <div class="stat-title" style="font-size: 11px;">Net Profit / Loss</div>
+              <div id="disp_net_pl" class="stat-value" style="font-size: 18px; margin: 4px 0;">₹0.00</div>
+            </div>
+            <div class="stat-card" style="padding: 12px 14px; background: #eff6ff; border-color: #93c5fd;">
+              <div class="stat-title" style="font-size: 11px; color: #1d4ed8;">Closing Balance</div>
+              <div id="disp_closing_bal" class="stat-value" style="font-size: 18px; color: #1d4ed8; margin: 4px 0;">₹0.00</div>
+            </div>
+          </div>
+
+          <div class="form-row-2">
+            <div>
+              <label>For Saving (`for_saving`):</label>
+              <input type="number" step="0.01" id="input_for_saving" placeholder="0.00" value="0" required />
+            </div>
+            <div>
+              <label>For Task (`for_task`):</label>
+              <input type="number" step="0.01" id="input_for_task" placeholder="0.00" value="0" required />
+            </div>
+          </div>
+
+          <div style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); padding: 16px; border-radius: 12px; border: 1px solid #86efac; margin-top: 18px;">
+            <div style="font-size: 12px; color: #166534; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">Actually Closing Balance (Closing - Saving - Task):</div>
+            <div id="disp_actually_closing" style="font-size: 24px; font-weight: 800; color: #15803d; margin-top: 4px; font-variant-numeric: tabular-nums;">₹0.00</div>
+          </div>
+
+          <button type="button" id="confirm-settlement-btn" class="submit-btn">
+            <span>💾</span> Save Settlement
+          </button>
+        </div>
+      </div>
+
+      <!-- 2. Completed Settlements History -->
+      <div class="card">
+        <div class="card-header-flex">
+          <h2 style="margin: 0;">Completed Settlements History</h2>
+          <span class="table-scroll-hint">← Swipe to view all →</span>
+        </div>
+        <div class="table-wrapper">
+          <table id="report-table">
+            <thead>
+              <tr>
+                <th>Settle No</th>
+                <th>Date</th>
+                <th>Stock</th>
+                <th>Opening</th>
+                <th>Net P/L</th>
+                <th>Closing</th>
+                <th>Saving</th>
+                <th>For Task</th>
+                <th>Actually Closing</th>
+              </tr>
+            </thead>
+            <tbody id="completed-settlement-tbody">
+              <tr><td colspan="9" style="text-align:center; padding: 20px; color: #64748b;">લોડ થઈ રહ્યું છે...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mobile Bottom Navigation Bar -->
+    <nav class="mobile-bottom-nav">
+      <a href="index.html" class="bottom-nav-item">
+        <span class="nav-icon">📊</span>
+        <span>Home</span>
+      </a>
+      <a href="treading.html" class="bottom-nav-item">
+        <span class="nav-icon">⚡</span>
+        <span>Trade</span>
+      </a>
+      <a href="generate_task.html" class="bottom-nav-item">
+        <span class="nav-icon">🎯</span>
+        <span>Task</span>
+      </a>
+      <a href="play_task.html" class="bottom-nav-item">
+        <span class="nav-icon">▶️</span>
+        <span>Play</span>
+      </a>
+      <a href="sattelment.html" class="bottom-nav-item active">
+        <span class="nav-icon">⚖️</span>
+        <span>Settle</span>
+      </a>
+      <button type="button" class="bottom-nav-item" onclick="openMobileDrawer()">
+        <span class="nav-icon">⋯</span>
+        <span>More</span>
+      </button>
+    </nav>
+
+    <!-- Slide-up Mobile Drawer -->
+    <div id="drawer-overlay" class="mobile-drawer-overlay" onclick="closeMobileDrawer()"></div>
+    <div id="mobile-drawer" class="mobile-drawer">
+      <div class="drawer-drag-handle"></div>
+      <div style="font-size: 16px; font-weight: 800; color: #0f172a; margin-bottom: 14px; text-align: center;">More Navigation</div>
+      <div class="drawer-menu-grid">
+        <a href="report.html" class="drawer-menu-item">
+          <span class="item-icon">📑</span>
+          <span>Capital Report</span>
+        </a>
+        <a href="pl_report.html" class="drawer-menu-item">
+          <span class="item-icon">📈</span>
+          <span>P/L Report</span>
+        </a>
+        <a href="data.html" class="drawer-menu-item">
+          <span class="item-icon">🗄️</span>
+          <span>Database Data</span>
+        </a>
+      </div>
+    </div>
+
+    <script>
+      function openMobileDrawer() {
+        document.getElementById("drawer-overlay").style.display = "block";
+        document.getElementById("mobile-drawer").classList.add("open");
+      }
+      function closeMobileDrawer() {
+        document.getElementById("mobile-drawer").classList.remove("open");
+        setTimeout(() => { document.getElementById("drawer-overlay").style.display = "none"; }, 200);
+      }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="sattelment.js"></script>
+  </body>
+</html>

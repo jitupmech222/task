@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Database Data — NSE Task Pro</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  </head>
+  <body>
+    <!-- Top Sticky Desktop Header -->
+    <header class="app-header">
+      <div class="header-inner">
+        <a href="index.html" class="brand-badge">
+          <div class="brand-icon">📈</div>
+          <div>
+            <div class="brand-title">NSE Task Pro</div>
+            <div class="brand-sub">Trading & Task System</div>
+          </div>
+        </a>
+
+        <!-- Desktop Navigation Bar -->
+        <nav class="main-nav-bar">
+          <a href="index.html" class="nav-link-btn">📊 Dashboard</a>
+          <a href="treading.html" class="nav-link-btn">⚡ Trading</a>
+          <a href="generate_task.html" class="nav-link-btn">🎯 Generate Task</a>
+          <a href="play_task.html" class="nav-link-btn">▶️ Play Task</a>
+          <a href="sattelment.html" class="nav-link-btn">⚖️ Settlement</a>
+          <a href="report.html" class="nav-link-btn">📑 Capital Report</a>
+          <a href="pl_report.html" class="nav-link-btn">📈 P/L Report</a>
+          <a href="data.html" class="nav-link-btn active">🗄️ Database Data</a>
+        </nav>
+      </div>
+    </header>
+
+    <div class="container">
+      <div class="card">
+        <!-- 5 ટેબલ પસંદ કરવાના બટન -->
+        <div class="table-tabs">
+          <button type="button" class="tab-btn active" data-table="task_nse">1) task_nse</button>
+          <button type="button" class="tab-btn" data-table="nse_task">2) nse_task</button>
+          <button type="button" class="tab-btn" data-table="nse_task_trades">3) nse_task_trades</button>
+          <button type="button" class="tab-btn" data-table="nse_saving_withdrawals">4) Saving Withdrawals</button>
+          <button type="button" class="tab-btn" data-table="nse_added_amounts">5) Added Amounts</button>
+        </div>
+
+        <!-- ટૂલબાર: Title, Refresh, Clear Filter, Download Excel -->
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <strong id="active-table-title" style="font-size: 16px; color: #0f172a;">Table: task_nse</strong>
+            <span id="row-count-badge" class="badge" style="background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1;">(0 rows)</span>
+          </div>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <button type="button" id="btn-refresh-data" class="mini-btn">🔄 Refresh</button>
+            <button type="button" id="btn-clear-filters" class="mini-btn" style="background-color: #64748b;">✖ Clear Filters</button>
+            <button type="button" id="btn-download-excel" class="mini-btn" style="background-color: #059669;">📥 Download Excel</button>
+          </div>
+        </div>
+
+        <span class="table-scroll-hint">← Swipe horizontally to view all columns →</span>
+
+        <!-- ડેટા ટેબલ -->
+        <div class="table-wrapper">
+          <table id="report-table">
+            <thead id="data-thead"></thead>
+            <tbody id="data-tbody">
+              <tr><td style="text-align: center; padding: 24px; color: #64748b;">ડેટા લોડ થઈ રહ્યો છે...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Excel-style Column Filter Popup -->
+    <div id="column-filter-popup" class="filter-dropdown">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <strong id="filter-col-title" style="font-size: 13px; color: #1e293b;">Filter</strong>
+      </div>
+      <input type="text" id="filter-search-input" placeholder="Search values..." style="padding: 6px 8px; font-size: 13px; border: 1px solid #cbd5e1; border-radius: 6px;" />
+      <div style="display: flex; gap: 6px; font-size: 12px;">
+        <button type="button" id="btn-select-all-filter" class="mini-btn" style="padding: 4px 8px; font-size: 11px;">Select All</button>
+        <button type="button" id="btn-deselect-all-filter" class="mini-btn" style="padding: 4px 8px; font-size: 11px; background:#94a3b8;">Clear</button>
+      </div>
+      <div id="filter-values-container" class="filter-values-list"></div>
+      <div style="display: flex; justify-content: flex-end; gap: 8px;">
+        <button type="button" id="btn-cancel-filter" class="mini-btn" style="background: #64748b;">Cancel</button>
+        <button type="button" id="btn-apply-filter" class="mini-btn">Apply</button>
+      </div>
+    </div>
+
+    <!-- Edit Row Modal -->
+    <div id="edit-modal" class="modal-overlay">
+      <div class="modal-box">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px;">
+          <h3 id="edit-modal-title" style="margin: 0; color: #1d4ed8; font-size: 17px;">Edit Record</h3>
+          <button type="button" id="btn-close-modal" style="background: none; border: none; font-size: 20px; cursor: pointer; color: #64748b;">✖</button>
+        </div>
+        <div id="edit-fields-container"></div>
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; border-top: 1px solid #e2e8f0; padding-top: 14px;">
+          <button type="button" id="btn-cancel-edit" class="mini-btn" style="background: #64748b;">Cancel</button>
+          <button type="button" id="btn-save-edit" class="mini-btn" style="background: #10b981;">Save Changes</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mobile Bottom Navigation Bar -->
+    <nav class="mobile-bottom-nav">
+      <a href="index.html" class="bottom-nav-item">
+        <span class="nav-icon">📊</span>
+        <span>Home</span>
+      </a>
+      <a href="treading.html" class="bottom-nav-item">
+        <span class="nav-icon">⚡</span>
+        <span>Trade</span>
+      </a>
+      <a href="generate_task.html" class="bottom-nav-item">
+        <span class="nav-icon">🎯</span>
+        <span>Task</span>
+      </a>
+      <a href="play_task.html" class="bottom-nav-item">
+        <span class="nav-icon">▶️</span>
+        <span>Play</span>
+      </a>
+      <button type="button" class="bottom-nav-item active" onclick="openMobileDrawer()">
+        <span class="nav-icon">⋯</span>
+        <span>More</span>
+      </button>
+    </nav>
+
+    <!-- Slide-up Mobile Drawer -->
+    <div id="drawer-overlay" class="mobile-drawer-overlay" onclick="closeMobileDrawer()"></div>
+    <div id="mobile-drawer" class="mobile-drawer">
+      <div class="drawer-drag-handle"></div>
+      <div style="font-size: 16px; font-weight: 800; color: #0f172a; margin-bottom: 14px; text-align: center;">More Navigation</div>
+      <div class="drawer-menu-grid">
+        <a href="sattelment.html" class="drawer-menu-item">
+          <span class="item-icon">⚖️</span>
+          <span>Settlement</span>
+        </a>
+        <a href="report.html" class="drawer-menu-item">
+          <span class="item-icon">📑</span>
+          <span>Capital Report</span>
+        </a>
+        <a href="pl_report.html" class="drawer-menu-item">
+          <span class="item-icon">📈</span>
+          <span>P/L Report</span>
+        </a>
+        <a href="data.html" class="drawer-menu-item" style="border-color: #2563eb; background: #eff6ff;">
+          <span class="item-icon">🗄️</span>
+          <span>Database Data</span>
+        </a>
+      </div>
+    </div>
+
+    <script>
+      function openMobileDrawer() {
+        document.getElementById("drawer-overlay").style.display = "block";
+        document.getElementById("mobile-drawer").classList.add("open");
+      }
+      function closeMobileDrawer() {
+        document.getElementById("mobile-drawer").classList.remove("open");
+        setTimeout(() => { document.getElementById("drawer-overlay").style.display = "none"; }, 200);
+      }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="data.js"></script>
+  </body>
+</html>
